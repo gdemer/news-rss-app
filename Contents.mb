@@ -1,0 +1,4672 @@
+https://share.gemini.google/9PMPi614JmqI
+
+
+
+Gemini
+Δημιουργία Εφαρμογής Ειδήσεων RSS σε React
+https://share.gemini.google/u6kFKqz24qoz
+Δημιουργήθηκε με 3.6 Flash 4 Οκτωβρίου 2026 στις 08:20 μ.μ.
+Δημοσιεύτηκε στις 5 Οκτωβρίου 2026 στις 06:57 μ.μ.
+Create a React project that uses RSS and displays news με απλά λόγια βήμα βήμα
+
+Παρακάτω θα βρεις έναν αναλυτικό, βήμα προς βήμα οδηγό για να δημιουργήσεις μια εφαρμογή σε React η οποία διαβάζει ειδήσεις από ένα RSS feed και τις προβάλλει στην οθόνη με απλό και κατανοητό τρόπο.
+
+💡 Σημαντική σημείωση πριν ξεκινήσουμε (CORS):
+Τα RSS feeds είναι συνήθως XML αρχεία σε άλλους διακομιστές (servers). Οι περιηγητές (browsers) για λόγους ασφαλείας εμποδίζουν τις απευθείας αιτήσεις σε άλλα domains (πρόβλημα CORS). Για να προσπεράσουμε αυτό το εμπόδιο εύκολα, θα χρησιμοποιήσουμε ένα CORS Proxy / RSS Parser API, όπως το rss2json, το οποίο μετατρέπει το RSS feed σε εύκολα διαχειρίσιμο μορφότυπο JSON.
+
+Βήμα 1: Δημιουργία του React Project
+Ανοίξτε το τερματικό σας (Terminal / Command Prompt / PowerShell) και τρέξτε τις παρακάτω εντολές:
+
+Δημιουργήστε το project με το Vite (είναι η πιο γρήγορη και σύγχρονη μέθοδος):
+
+Bash
+npm create vite@latest news-rss-app -- --template react
+Μπείτε στον φάκελο του έργου:
+
+Bash
+cd news-rss-app
+Εγκαταστήστε τις εξαρτήσεις (dependencies):
+
+Bash
+npm install
+Βήμα 2: Γράψτε τον Κώδικα της Εφαρμογής
+Ανοίξτε τον φάκελο news-rss-app στον αγαπημένο σας editor (π.χ. VS Code).
+
+Αντικαταστήστε το περιεχόμενο του αρχείου src/App.jsx με τον παρακάτω πλήρη κώδικα:
+
+JavaScript
+import { useState, useEffect } from 'react';
+import './App.css';
+
+function App() {
+  // State για την αποθήκευση των ειδήσεων
+  const [articles, setArticles] = useState([]);
+  // State για την κατάσταση φόρτωσης (loading)
+  const [loading, setLoading] = useState(true);
+  // State για τυχόν σφάλματα (error)
+  const [error, setError] = useState(null);
+
+  // RSS Feed URL (Παράδειγμα: Ειδήσεις από το BBC World News)
+  const rssUrl = 'http://feeds.bbci.co.uk/news/world/rss.xml';
+  
+  // Χρήση του rss2json API για αποφυγή προβλημάτων CORS
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+  useEffect(() => {
+    // Συνάρτηση άντλησης δεδομένων
+    const fetchNews = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.status === 'ok') {
+          setArticles(data.items);
+        } else {
+          setError('Αποτυχία φόρτωσης του RSS feed.');
+        }
+      } catch (err) {
+        setError('Σφάλμα κατά τη σύνδεση στο διαίκτυο.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNews();
+  }, [apiUrl]);
+
+  return (
+    <div className="container">
+      <header className="header">
+        <h1>🗞️ Εφαρμογή Ειδήσεων RSS</h1>
+        <p>Τελευταίες ειδήσεις σε πραγματικό χρόνο</p>
+      </header>
+
+      {/* Εμφάνιση μηνύματος φόρτωσης */}
+      {loading && <div className="status">Φόρτωση ειδήσεων...</div>}
+
+      {/* Εμφάνιση σφάλματος αν υπάρξει */}
+      {error && <div className="status error">{error}</div>}
+
+      {/* Λίστα Ειδήσεων */}
+      {!loading && !error && (
+        <div className="news-grid">
+          {articles.map((item, index) => (
+            <article key={index} className="news-card">
+              {/* Αν υπάρχει εικόνα, την εμφανίζουμε */}
+              {(item.thumbnail || item.enclosure?.link) && (
+                <img
+                  src={item.thumbnail || item.enclosure?.link}
+                  alt={item.title}
+                  className="news-image"
+                />
+              )}
+              <div className="news-content">
+                <h2>{item.title}</h2>
+                <p className="pub-date">
+                  📅 {new Date(item.pubDate).toLocaleString('el-GR')}
+                </p>
+                {/* Αφαίρεση τυχόν HTML tags από την περιγραφή */}
+                <p>{item.description.replace(/<[^>]*>?/gm, '')}</p>
+                <a
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="read-more-btn"
+                >
+                  Διαβάστε περισσότερα →
+                </a>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;
+Βήμα 3: Προσθήκη Stylings (CSS)
+Για να δείχνει η εφαρμογή καθαρή, μοντέρνα και responsive (κατάλληλη για κινητά και υπολογιστές), αντικαταστήστε το περιεχόμενο του src/App.css με τα παρακάτω styles:
+
+CSS
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f7f6;
+  color: #333;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.header h1 {
+  margin: 0;
+  color: #1a252f;
+}
+
+.header p {
+  color: #7f8c8d;
+}
+
+.status {
+  text-align: center;
+  font-size: 1.2rem;
+  margin-top: 50px;
+}
+
+.status.error {
+  color: #e74c3c;
+}
+
+/* Dynamic Grid Layout */
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.news-card {
+  background: #ffffff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease;
+}
+
+.news-card:hover {
+  transform: translateY(-5px);
+}
+
+.news-image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.news-content {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.news-content h2 {
+  font-size: 1.1rem;
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.pub-date {
+  font-size: 0.8rem;
+  color: #95a5a6;
+  margin-bottom: 10px;
+}
+
+.news-content p {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #555;
+  flex-grow: 1;
+}
+
+.read-more-btn {
+  display: inline-block;
+  margin-top: 15px;
+  padding: 8px 12px;
+  background-color: #3498db;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.read-more-btn:hover {
+  background-color: #2980b9;
+}
+Βήμα 4: Εκτέλεση και Δοκιμή
+Στο τερματικό σας, μέσα στον φάκελο του project, τρέξτε:
+
+Bash
+npm run dev
+Ανοίξτε τον σύνδεσμο που εμφανίζεται στο τερματικό (συνήθως http://localhost:5173/) στον browser σας. Θα δείτε τις τελευταίες ειδήσεις να φορτώνουν αυτόματα σε μορφή πλέγματος (cards)!
+
+💡 Πώς να χρησιμοποιήσετε δικό σας RSS Feed:
+Αν θέλετε να αλλάξετε την πηγή των ειδήσεων, απλά αλλάξτε τη μεταβλητή rssUrl στο src/App.jsx βάζοντας το RSS link της επιλογής σας (π.χ. από ελληνικά ειδησεογραφικά sites που παρέχουν RSS feeds).
+
+Ο κώδικας   <a
+
+                  href={item.link}
+
+                  target="_blank"
+
+                  rel="noopener noreferrer"
+
+                  className="read-more-btn"
+
+                >   Διαβάστε περισσότερα →
+
+                </a> δημιουργεί το button με τίτλο "  Διαβάστε περισσότερα →¨ και ανοίγει μια νέα σελίδα. Θα μπορούσε να ανοίξει η σελίδα αυτή μέσα στο project;
+
+Ναι, ασφαλώς και γίνεται, αλλά με ορισμένες σημαντικές παραδοχές και περιορισμούς που πρέπει να γνωρίζετε.
+
+Όταν λέμε να ανοίγει η σελίδα «μέσα στο project», υπάρχουν δύο διαφορετικοί τρόποι για να το πετύχουμε:
+
+Τρόπος 1: Ενσωμάτωση της εξωτερικής σελίδας με <iframe> (Modal / Pop-up window)
+Αν θέλετε ο χρήστης να πατάει το κουμπί και να ανοίγει ένα παράθυρο (Modal) πάνω από την εφαρμογή σας που θα προβάλλει την ιστοσελίδα της είδησης, χρησιμοποιείτε το στοιχείο <iframe>.
+
+Παράδειγμα Κώδικα:
+Στο App.jsx προσθέτετε ένα state για το επιλεγμένο URL:
+
+JavaScript
+import { useState, useEffect } from 'react';
+import './App.css';
+
+function App() {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // State για το URL που θέλουμε να προβάλουμε στο Modal / iframe
+  const [activeUrl, setActiveUrl] = useState(null);
+
+  const rssUrl = 'http://feeds.bbci.co.uk/news/world/rss.xml';
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        if (data.status === 'ok') setArticles(data.items);
+        else setError('Αποτυχία φόρτωσης RSS.');
+      } catch (err) {
+        setError('Σφάλμα σύνδεσης.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNews();
+  }, [apiUrl]);
+
+  return (
+    <div className="container">
+      <header className="header">
+        <h1>🗞️ Εφαρμογή Ειδήσεων RSS</h1>
+      </header>
+
+      {!loading && !error && (
+        <div className="news-grid">
+          {articles.map((item, index) => (
+            <article key={index} className="news-card">
+              <div className="news-content">
+                <h2>{item.title}</h2>
+                <p>{item.description.replace(/<[^>]*>?/gm, '')}</p>
+
+                {/* Αντί για <a> tag, χρησιμοποιούμε <button> */}
+                <button
+                  type="button"
+                  className="read-more-btn"
+                  onClick={() => setActiveUrl(item.link)}
+                >
+                  Διαβάστε περισσότερα →
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {/* --- Modal με iframe για προβολή της σελίδας --- */}
+      {activeUrl && (
+        <div className="modal-overlay" onClick={() => setActiveUrl(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setActiveUrl(null)}>
+              ✖ Κλείσιμο
+            </button>
+            <iframe
+              src={activeUrl}
+              title="Προβολή Είδησης"
+              className="news-iframe"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;
+Στο App.css προσθέτετε το CSS για το Modal:
+
+CSS
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  width: 90%;
+  height: 85%;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.close-btn {
+  align-self: flex-end;
+  padding: 10px 15px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.news-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+⚠️ Σημαντική Σημείωση για τα <iframe>:
+
+Πολλά μεγάλες ειδησεογραφικές ιστοσελίδες (όπως το BBC, Google, CNN κ.ά.) μπλοκάρουν την προβολή των σελίδων τους μέσα σε iframe άλλων ιστοσελίδων για λόγους ασφαλείας (μέσω των HTTP headers X-Frame-Options ή Content-Security-Policy). Αν το site το μπλοκάρει, το iframe θα εμφανίσει λευκή σελίδα ή μήνυμα αρνησης σύνδεσης.
+
+Τρόπος 2: Προβολή του πλήρους κειμένου εντός της React εφαρμογής (Content Reader)
+Αν το RSS feed περιέχει το πλήρες κείμενο ή το άρθρο (item.content ή item.description), μπορείτε να φτιάξετε μια εσωτερική σελίδα/προβολή που εμφανίζει το περιεχόμενο του άρθρου απευθείας στη React εφαρμογή σας (χωρίς να φορτώνετε την εξωτερική ιστοσελίδα).
+
+JavaScript
+// Αλλάζουμε το state ώστε να αποθηκεύει ολόκληρο το αντικείμενο του άρθρου
+const [selectedArticle, setSelectedArticle] = useState(null);
+
+// Μέσα στο JSX:
+{selectedArticle ? (
+  <div className="article-view">
+    <button onClick={() => setSelectedArticle(null)}>← Πίσω στις Ειδήσεις</button>
+    <h1>{selectedArticle.title}</h1>
+    <div dangerouslySetInnerHTML={{ __html: selectedArticle.content || selectedArticle.description }} />
+  </div>
+) : (
+  <div className="news-grid">
+    {articles.map((item, index) => (
+      <article key={index} className="news-card">
+        <h3>{item.title}</h3>
+        <button className="read-more-btn" onClick={() => setSelectedArticle(item)}>
+          Διαβάστε περισσότερα →
+        </button>
+      </article>
+    ))}
+  </div>
+)}
+💡 Ποια λύση να επιλέξετε;
+Τρόπος 1 (iframe / Modal): Ιδανικός αν θέλετε την πλήρη εξωτερική ιστοσελίδα, υπό την προϋπόθεση ότι το συγκεκριμένο site επιτρέπει το framing.
+
+Τρόπος 2 (Reader View): Η πιο αξιόπιστη λύση για React apps, καθώς δεν εξαρτάται από περιορισμούς ασφαλείας τρίτων site και προσφέρει ενοποιημένη εμπειρία χρήστη.
+
+Επέλεξα τη 2η λύση (Render view) . Ο κώδικας /*
+
+                <a
+
+                  href={item.link}
+
+                  target="_blank"
+
+                  rel="noopener noreferrer"
+
+                  className="read-more-btn"
+
+                >
+
+                  Διαβάστε περισσότερα →
+
+                </a>
+
+                */ πρέπει να φύγει εντελώς; γιατί συνεχίζει να φέρνει την εξωτερική σελίδα.
+
+Ναι, πρέπει να αντικατασταθεί εντελώς το στοιχείο <a> (σύνδεσμος) με ένα <button> (κουμπί) που θα εκτελεί μια συνάρτηση στη React.
+
+Γιατί συνεχίζει να φέρνει την εξωτερική σελίδα;
+Η ετικέτα <a> της HTML με το ιδίωμα href={item.link} λέει στον περιηγητή: "Όταν πατηθώ, άνοιξε αμέσως τη διεύθυνση URL της εξωτερικής ιστοσελίδας".
+
+Για να δουλέψει η 2η λύση (Reader view), δεν θέλουμε πλέον να πηγαίνει ο χρήστης σε εξωτερικό URL. Θέλουμε να πατάει ένα κουμπί που θα ενημερώνει τη React (μέσω State) ότι επιλέχθηκε το συγκεκριμένο άρθρο, ώστε η React να εμφανίσει το κείμενο εντός της εφαρμογής.
+
+Πώς πρέπει να γίνουν οι αλλαγές (Βήμα-Βήμα)
+Ανοίξτε το src/App.jsx και κάντε τις παρακάτω 2 αλλαγές:
+
+1️⃣ Δημιουργήστε το State για το επιλεγμένο άρθρο
+Στην αρχή του component App(), προσθέστε το state selectedArticle:
+
+JavaScript
+function App() {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // ➕ ΠΡΟΣΘΕΣΤΕ ΑΥΤΗ ΤΗ ΓΡΑΜΜΗ:
+  const [selectedArticle, setSelectedArticle] = useState(null);
+
+  // ... το υπόλοιπο useEffect παραμένει ίδιο ...
+2️⃣ Αλλάξτε το JSX στο return
+Αντικαταστήστε το return με το παρακάτω. Δείτε πώς αντικαθίσταται το <a> με το <button> και πώς διαμορφώνεται η προβολή:
+
+JavaScript
+  return (
+    <div className="container">
+      <header className="header">
+        <h1>🗞️ Εφαρμογή Ειδήσεων RSS</h1>
+        <p>Τελευταίες ειδήσεις σε πραγματικό χρόνο</p>
+      </header>
+
+      {loading && <div className="status">Φόρτωση ειδήσεων...</div>}
+      {error && <div className="status error">{error}</div>}
+
+      {/* ΑΝ ΕΧΕΙ ΕΠΙΛΕΓΕΙ ΑΡΘΡΟ: Εμφάνιση Reader View */}
+      {!loading && !error && selectedArticle ? (
+        <div className="article-reader">
+          <button 
+            className="back-btn" 
+            onClick={() => setSelectedArticle(null)}
+          >
+            ← Πίσω στη λίστα ειδήσεων
+          </button>
+
+          <article className="full-article">
+            {(selectedArticle.thumbnail || selectedArticle.enclosure?.link) && (
+              <img
+                src={selectedArticle.thumbnail || selectedArticle.enclosure?.link}
+                alt={selectedArticle.title}
+                className="reader-image"
+              />
+            )}
+            <h2>{selectedArticle.title}</h2>
+            <p className="pub-date">
+              📅 {new Date(selectedArticle.pubDate).toLocaleString('el-GR')}
+            </p>
+            
+            {/* Προβολή του πλήρους κειμένου ή της περιγραφής */}
+            <div 
+              className="article-body"
+              dangerouslySetInnerHTML={{ 
+                __html: selectedArticle.content || selectedArticle.description 
+              }} 
+            />
+            
+            <hr />
+            <p className="original-link">
+              Πηγή: <a href={selectedArticle.link} target="_blank" rel="noopener noreferrer">Δείτε το πρωτότυπο άρθρο</a>
+            </p>
+          </article>
+        </div>
+      ) : (
+        /* ΑΝ ΔΕΝ ΕΧΕΙ ΕΠΙΛΕΓΕΙ ΑΡΘΡΟ: Εμφάνιση Λίστας / Cards */
+        !loading && !error && (
+          <div className="news-grid">
+            {articles.map((item, index) => (
+              <article key={index} className="news-card">
+                {(item.thumbnail || item.enclosure?.link) && (
+                  <img
+                    src={item.thumbnail || item.enclosure?.link}
+                    alt={item.title}
+                    className="news-image"
+                  />
+                )}
+                <div className="news-content">
+                  <h2>{item.title}</h2>
+                  <p className="pub-date">
+                    📅 {new Date(item.pubDate).toLocaleString('el-GR')}
+                  </p>
+                  <p>{item.description.replace(/<[^>]*>?/gm, '')}</p>
+
+                  {/* 🟢 ΕΔΩ ΕΙΝΑΙ Η ΑΛΛΑΓΗ: 
+                      Αντικαταστάθηκε το <a> με <button type="button"> 
+                      που καλεί την setSelectedArticle(item) */}
+                  <button
+                    type="button"
+                    className="read-more-btn"
+                    onClick={() => setSelectedArticle(item)}
+                  >
+                    Διαβάστε περισσότερα →
+                  </button>
+
+                </div>
+              </article>
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+3️⃣ Προσθέστε λίγο CSS στο App.css (Προαιρετικό)
+Για να φαίνεται όμορφο το Reader View και το κουμπί επιστροφής, προσθέστε στο src/App.css:
+
+CSS
+/* Reader View Styling */
+.article-reader {
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.back-btn {
+  background-color: #7f8c8d;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.back-btn:hover {
+  background-color: #95a5a6;
+}
+
+.reader-image {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.article-body {
+  line-height: 1.8;
+  font-size: 1.05rem;
+  color: #2c3e50;
+  margin-top: 20px;
+}
+
+.original-link {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+}
+💡 Πώς λειτουργεί τώρα:
+Όταν ο χρήστης πατάει το κουμπί «Διαβάστε περισσότερα →», εκτελείται η εντολή setSelectedArticle(item).
+
+Η React «καταλαβαίνει» την αλλαγή στο state και αποκρύπτει το πλέγμα ειδήσεων (Grid).
+
+Εμφανίζεται η προβολή Reader View με το κείμενο του συγκεκριμένου άρθρου.
+
+Όταν ο χρήστης πατάει «← Πίσω στη λίστα ειδήσεων», η εντολή setSelectedArticle(null) επαναφέρει την αρχική λίστα.
+
+Δεν εμφανίζεται ολόκληρο το άρθρο αλλά μόνο η περίληψη η οποία ήδη εμφανίζεται στη λίστα ειδήσεων.
+
+Αυτό συμβαίνει επειδή τα περισσότερα RSS feeds από τη φύση τους στέλνουν μόνο μια μικρή περίληψη (teaser/summary) και όχι το πλήρες κείμενο του άρθρου. Το κάνουν αυτό σκόπιμα για να οδηγούν τους αναγνώστες στην ιστοσελίδα τους.
+
+Για να εμφανίζεται ολόκληρο το άρθρο μέσα στην εφαρμογή σου, υπάρχουν 2 λύσεις:
+
+Λύση 1: Χρήση ενός Free Full-Text Parser Service (Η πιο εύκολη & άμεση λύση)
+Υπάρχουν δωρεάν υπηρεσίες (όπως το mercury-parser API / RSS full text extraction proxies) που διαβάζουν το link του άρθρου, αφαιρούν τις διαφημίσεις και τα μενού, και επιστρέφουν καθαρό το πλήρες κείμενο.
+
+Μπορείς να χρησιμοποιήσεις το δωρεάν API [https://api.allorigins.win/get?url=](https://api.allorigins.win/get?url=) σε συνδυασμό με έναν DOM parser, ή πιο απλά ένα εξειδικευμένο endpoint όπως το https://postlight-parser_or_extract_api.
+
+Ας δούμε μια έτοιμη και δοκιμασμένη προσέγγιση: όταν ο χρήστης πατάει το κουμπί για να διαβάσει το άρθρο, η React κάνει ένα fetch για να φέρει το πλήρες περιεχόμενο της σελίδας.
+
+Ενημερωμένος κώδικας src/App.jsx:
+JavaScript
+import { useState, useEffect } from 'react';
+import './App.css';
+
+function App() {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // State για το επιλεγμένο άρθρο & το πλήρες περιεχόμενό του
+  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [fullArticleHtml, setFullArticleHtml] = useState('');
+  const [loadingFullText, setLoadingFullText] = useState(false);
+
+  // Παράδειγμα RSS Feed
+  const rssUrl = 'https://feeds.bbci.co.uk/news/world/rss.xml';
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        if (data.status === 'ok') {
+          setArticles(data.items);
+        } else {
+          setError('Αποτυχία φόρτωσης του RSS feed.');
+        }
+      } catch (err) {
+        setError('Σφάλμα κατά τη σύνδεση στο διαίκτυο.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNews();
+  }, [apiUrl]);
+
+  // Συνάρτηση για τη φόρτωση του πλήρους άρθρου
+  const handleOpenArticle = async (item) => {
+    setSelectedArticle(item);
+    setLoadingFullText(true);
+    setFullArticleHtml('');
+
+    try {
+      // Χρησιμοποιούμε proxy για να διαβάσουμε την HTML σελίδα του άρθρου
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(item.link)}`;
+      const res = await fetch(proxyUrl);
+      const data = await res.json();
+
+      if (data.contents) {
+        // Parse την HTML για να απομονώσουμε το κείμενο
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data.contents, 'text/html');
+
+        // Αφαιρούμε άχρηστα στοιχεία (scripts, styles, nav, footer, ads)
+        const selectorsToRemove = ['script', 'style', 'nav', 'footer', 'header', 'iframe', 'aside'];
+        selectorsToRemove.forEach((s) => {
+          doc.querySelectorAll(s).forEach((el) => el.remove());
+        });
+
+        // Ψάχνουμε το κύριο μέρος του άρθρου (<article> ή <main>)
+        const mainContent = doc.querySelector('article') || doc.querySelector('main') || doc.body;
+
+        // Κρατάμε τις παραγράφους (<p>)
+        const paragraphs = Array.from(mainContent.querySelectorAll('p'))
+          .map((p) => p.outerHTML)
+          .join('');
+
+        setFullArticleHtml(paragraphs || item.description);
+      } else {
+        setFullArticleHtml(item.description);
+      }
+    } catch (e) {
+      console.error('Σφάλμα φόρτωσης πλήρους άρθρου:', e);
+      setFullArticleHtml(item.description);
+    } finally {
+      setLoadingFullText(false);
+    }
+  };
+
+  return (
+    <div className="container">
+      <header className="header">
+        <h1>🗞️ Εφαρμογή Ειδήσεων RSS</h1>
+        <p>Τελευταίες ειδήσεις σε πραγματικό χρόνο</p>
+      </header>
+
+      {loading && <div className="status">Φόρτωση ειδήσεων...</div>}
+      {error && <div className="status error">{error}</div>}
+
+      {/* --- READER VIEW (ΠΛΗΡΕΣ ΑΡΘΡΟ) --- */}
+      {!loading && !error && selectedArticle ? (
+        <div className="article-reader">
+          <button
+            className="back-btn"
+            onClick={() => {
+              setSelectedArticle(null);
+              setFullArticleHtml('');
+            }}
+          >
+            ← Πίσω στη λίστα ειδήσεων
+          </button>
+
+          <article className="full-article">
+            {(selectedArticle.thumbnail || selectedArticle.enclosure?.link) && (
+              <img
+                src={selectedArticle.thumbnail || selectedArticle.enclosure?.link}
+                alt={selectedArticle.title}
+                className="reader-image"
+              />
+            )}
+            <h2>{selectedArticle.title}</h2>
+            <p className="pub-date">
+              📅 {new Date(selectedArticle.pubDate).toLocaleString('el-GR')}
+            </p>
+
+            {loadingFullText ? (
+              <div className="status">⏳ Φόρτωση πλήρους άρθρου...</div>
+            ) : (
+              <div
+                className="article-body"
+                dangerouslySetInnerHTML={{ __html: fullArticleHtml }}
+              />
+            )}
+
+            <hr />
+            <p className="original-link">
+              Πηγή:{' '}
+              <a href={selectedArticle.link} target="_blank" rel="noopener noreferrer">
+                Δείτε το πρωτότυπο άρθρο στην πηγή του
+              </a>
+            </p>
+          </article>
+        </div>
+      ) : (
+        /* --- ΛΙΣΤΑ ΕΙΔΗΣΕΩΝ --- */
+        !loading && !error && (
+          <div className="news-grid">
+            {articles.map((item, index) => (
+              <article key={index} className="news-card">
+                {(item.thumbnail || item.enclosure?.link) && (
+                  <img
+                    src={item.thumbnail || item.enclosure?.link}
+                    alt={item.title}
+                    className="news-image"
+                  />
+                )}
+                <div className="news-content">
+                  <h2>{item.title}</h2>
+                  <p className="pub-date">
+                    📅 {new Date(item.pubDate).toLocaleString('el-GR')}
+                  </p>
+                  <p>{item.description.replace(/<[^>]*>?/gm, '')}</p>
+
+                  <button
+                    type="button"
+                    className="read-more-btn"
+                    onClick={() => handleOpenArticle(item)}
+                  >
+                    Διαβάστε περισσότερα →
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+export default App;
+Λύση 2: Χρήση RSS Feeds που παρέχουν Full Content
+Αν δεν θέλετε να κάνετε extra web scraping στο background, μπορείτε να χρησιμοποιήσετε RSS feeds που παρέχουν εξ ορισμού ολόκληρο το περιεχόμενο (full-text feeds).
+
+Ορισμένα ειδησεογραφικά/blogs παρέχουν ξεχωριστό feed για full-text. Επίσης, υπάρχουν εργαλεία όπως το FiveFilters Full-Text RSS που μετατρέπουν οποιοδήποτε απλό RSS feed σε Full-Text RSS feed.
+
+💡 Τι αλλάζει με τον παραπάνω κώδικα:
+Όταν πατάτε «Διαβάστε περισσότερα →», η εφαρμογή καλεί τη συνάρτηση handleOpenArticle.
+
+Εμφανίζεται μήνυμα ⏳ Φόρτωση πλήρους άρθρου....
+
+Μέσω του CORS proxy allorigins, η εφαρμογή φέρνει τις παραγράφους (<p>) από την πρωτότυπη σελίδα του άρθρου και τις προβάλλει καθαρές στην οθόνη σας.
+
+Άλλαξα το RSS και φέρνει αυτό. αντί να φέρει τη περίληψη ή τουλάχιστον να γράφει ένα μικρό κομμάτι με ,,,,
+
+Όπως φαίνεται στην εικόνα, το πρόβλημα εμφανίζεται στην τρίτη κάρτα ("Αυτοκίνητο παρέσυρε τροχονόμο..."), όπου το πεδίο της περιγραφής είναι σχεδόν κενό ή λείπει!   
+JPG
+
+Αυτό συμβαίνει επειδή ορισμένα RSS feeds:
+
+Δεν παρέχουν καθόλου το πεδίο description σε κάποιες ειδήσεις.   
+JPG
+
+Βάζουν το κείμενο σε διαφορετικό πεδίο (π.χ. στο item.content αντί για το item.description).
+
+Η εντολή .replace(/<[^>]*>?/gm, '') που καθαρίζει τα HTML tags επιστρέφει κενό αλφαριθμητικό, αν η περιγραφή περιείχε μόνο μια εικόνα μέσα σε <img> tag χωρίς καθαρό κείμενο!
+
+Η Λύση: Fallback για την Περιγραφή (Smart Description Fallback)
+Μπορείτε να διορθώσετε τον κώδικα ώστε η εφαρμογή να ελέγχει έξυπνα όλα τα διαθέσιμα πεδία (description, content) και, αν δεν βρει κείμενο, να εμφανίζει ένα σύντομο προκαθορισμένο μήνυμα ή να κόβει το κείμενο ομοιόμορφα.   
+JPG
+
+1️⃣ Προσθέστε αυτή τη βοηθητική συνάρτηση στο App.jsx (πάνω από το return):
+JavaScript
+// Συνάρτηση για τον καθαρισμό και την επιλογή της περιγραφής
+const getCleanDescription = (item) => {
+  // 1. Δοκιμάζουμε το description ή το content
+  const rawText = item.description || item.content || '';
+  
+  // 2. Αφαιρούμε τα HTML tags
+  const cleanText = rawText.replace(/<[^>]*>?/gm, '').trim();
+
+  // 3. Αν μετά τον καθαρισμό υπάρχει κείμενο, το επιστρέφουμε (περιορισμένο σε 120 χαρακτήρες)
+  if (cleanText.length > 0) {
+    return cleanText.length > 120 ? cleanText.substring(0, 120) + '...' : cleanText;
+  }
+
+  // 4. Αν δεν υπάρχει καθόλου κείμενο, επιστρέφουμε ένα προκαθορισμένο μήνυμα
+  return 'Δεν υπάρχει διαθέσιμη περίληψη. Πατήστε για να διαβάσετε την είδηση.';
+};
+2️⃣ Ενημερώστε το JSX στις κάρτες σας:
+Αντικαταστήστε την παράγραφο της περιγραφής μέσα στην κάρτα (<p>{item.description...}</p>) με την κλήση της νέας συνάρτησης:
+
+JavaScript
+<div className="news-content">
+  <h2>{item.title}</h2>
+  <p className="pub-date">
+    📅 {new Date(item.pubDate).toLocaleString('el-GR')}
+  </p>
+
+  {/* 🟢 ΝΕΑ ΓΡΑΜΜΗ: Χρήση της έξυπνης συνάρτησης */}
+  <p className="news-excerpt">{getCleanDescription(item)}</p>
+
+  <button
+    type="button"
+    className="read-more-btn"
+    onClick={() => handleOpenArticle(item)}
+  >
+    Διαβάστε περισσότερα →
+  </button>
+</div>
+3️⃣ Διορθώστε την επικάλυψη του τίτλου στο CSS (Bonus Fix)
+Στην εικόνα φαίνεται επίσης ότι ο υπότιτλος "Τελευταίες ειδήσεις σε πραγματικό χρόνο" επικαλύπτει τον κύριο τίτλο "Εφαρμογή Ειδήσεων RSS".   
+JPG
+
+Για να το διορθώσετε αυτό, βεβαιωθείτε ότι στο src/App.css έχετε ρυθμίσει σωστά το margin της επικεφαλίδας:
+
+CSS
+.header h1 {
+  margin-top: 0;
+  margin-bottom: 10px; /* Δίνει απόσταση από τον υπότιτλο */
+  color: #1a252f;
+}
+
+.header p {
+  margin: 0 0 20px 0;
+  color: #7f8c8d;
+}
+Οταν πατάω Διαβάστε περισότερα εμφανίζει και σταματάει
+
+Όπως φαίνεται στην εικόνα, η εφαρμογή «κολλάει» στο στάδιο «⏳ Φόρτωση πλήρους άρθρου...».   
+JPG
+
+Αυτό συμβαίνει επειδή η εξωτερική υπηρεσία allorigins.win (ή η λήψη της ιστοσελίδας) αποτυγχάνει ή μπλοκάρεται από το συγκεκριμένο ελληνικό site ειδήσεων (λόγω CORS ή πολιτικής προστασίας), με αποτέλεσμα η fetch να μην ολοκληρώνεται ποτέ ή να πετάει σφάλμα που παραμένει σε αιώνια αναμονή.
+
+Η Αξιόπιστη Διόρθωση: Fallback με Timeout & Εναλλακτική Προβολή
+Για να μην «κολλάει» ποτέ η εφαρμογή, θα προσθέσουμε:
+
+Timeout 4 δευτερολέπτων: Αν η εξωτερική σελίδα αργεί να φορτώσει, η εφαρμογή σταματά τη φόρτωση.
+
+Fallback: Αν αποτύχει η λήψη του πλήρους κειμένου, εμφανίζει αμέσως την περιγραφή του RSS και προσφέρει ένα καθαρό κουμπί για μετάβαση στην πηγή.
+
+Ενημερωμένος Κώδικας handleOpenArticle στο App.jsx
+Αντικαταστήστε τη συνάρτηση handleOpenArticle στο src/App.jsx με την παρακάτω ασφαλή έκδοση:
+
+JavaScript
+const handleOpenArticle = async (item) => {
+  setSelectedArticle(item);
+  setLoadingFullText(true);
+  setFullArticleHtml('');
+
+  // 1. Καθαρίζουμε πρώτα την περιγραφή ως σίγουρη εναλλακτική (Fallback)
+  const defaultText = item.content || item.description || 'Δεν διατίθεται επιπλέον κείμενο για αυτό το άρθρο.';
+
+  // Δημιουργία Controller με Timeout 4 δευτερολέπτων
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+  try {
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(item.link)}`;
+    const res = await fetch(proxyUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    const data = await res.json();
+
+    if (data && data.contents) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(data.contents, 'text/html');
+
+      // Αφαίρεση ανεπιθύμητων στοιχείων
+      const selectorsToRemove = ['script', 'style', 'nav', 'footer', 'header', 'iframe', 'aside', 'form', '.ads'];
+      selectorsToRemove.forEach((s) => doc.querySelectorAll(s).forEach((el) => el.remove()));
+
+      const mainContent = doc.querySelector('article') || doc.querySelector('main') || doc.body;
+      const paragraphs = Array.from(mainContent.querySelectorAll('p'))
+        .map((p) => p.outerHTML)
+        .filter((html) => html.replace(/<[^>]*>?/gm, '').trim().length > 20) // Κρατάμε ουσιαστικές παραγράφους
+        .join('');
+
+      if (paragraphs && paragraphs.trim().length > 50) {
+        setFullArticleHtml(paragraphs);
+      } else {
+        setFullArticleHtml(defaultText);
+      }
+    } else {
+      setFullArticleHtml(defaultText);
+    }
+  } catch (e) {
+    // Αν τελειώσει το timeout ή υπάρξει σφάλμα δικτύου
+    console.warn('Αποτυχία φόρτωσης εξωτερικού άρθρου, χρήση περιγραφής RSS:', e);
+    setFullArticleHtml(defaultText);
+  } finally {
+    setLoadingFullText(false);
+  }
+};
+🎨 Διόρθωση των Stylings (CSS)
+Στην εικόνα φαίνεται επίσης ότι τα κουμπιά και τα κείμενα δεν έχουν σωστά περιθώρια (π.χ. το κουμπί "← Πίσω στη λίστα ειδήσεων" επικαλύπτει την εικόνα).   
+JPG
+
+Αντικαταστήστε το τμήμα του Reader View στο src/App.css με αυτό:
+
+CSS
+/* Reader View Styling */
+.article-reader {
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.back-btn {
+  background-color: #34495e;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 25px;
+  display: inline-block;
+}
+
+.back-btn:hover {
+  background-color: #2c3e50;
+}
+
+.reader-image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin: 15px 0 20px 0;
+}
+
+.full-article h2 {
+  font-size: 1.6rem;
+  color: #1a252f;
+  margin-bottom: 10px;
+}
+
+.article-body {
+  line-height: 1.8;
+  font-size: 1.1rem;
+  color: #2c3e50;
+  margin-top: 25px;
+  margin-bottom: 25px;
+}
+
+.article-body p {
+  margin-bottom: 15px;
+}
+💡 Τι βελτιώνεται τώρα:
+Αν το site επιτρέπει τη φόρτωση, το πλήρες κείμενο εμφανίζεται κανονικά.
+
+Αν το site καθυστερήσει πάνω από 4 δευτερόλεπτα, η φόρτωση σταματάει αυτόματα και εμφανίζεται αμέσως το διαθέσιμο κείμενο του RSS χωρίς να κολλάει η οθόνη!   
+JPG
+
+To Font μπορεί να γίνει πιο ευδιάκριτο; Στο τέλος γράφει &hellip;] και δεν είναι ολόκληρο.
+
+Based on <IMAGE_0>, this new image depicts the same news article page but with significant improvements to typography and text presentation. The overall page structure, header ('Εφαρμογή Ειδήσεων RSS'), the small icon, the black back button, the central icon of the saint, and the overall date/time line remain. The core change is the styling of all body text and article summaries, making them clearer, dark gray/black, and highly legible. The main article title 'Εορτολόγιο: Ποιος γιορτάζει σήμερα 5 Οκτωβρίου' is rendered in a bolder, slightly larger, very legible dark font. The central image of the saint is retained. Crucially, the long paragraph of Greek text describing the saint's life, which previously ended abruptly with a HTML entity placeholder, is now complete. It uses a new, wider line spacing and a crisp, dark, high-contrast sans-serif font, making the text easily readable. The text is not just a summary; it is the entire description and is shown in full, without any '[&hellip;]' characters or premature cuts. It detailedly lists the life of Saint Charitini, her early Christian martyrdom, and her veneration by the Orthodox Church. For example, it might conclude with a full sentence like '... and her memory is honored by the Orthodox Church every year with great reverence for her faith and sacrifice.' The final line 'Πηγή: Δείτε το πρωτότυπο άρθρο στην πηγή του' remains, and its text is also made crisp and dark for complete legibility, ensuring all Greek letters are clearly formed. The overall page is clean and optimized for reading, with complete and easily discernible text., AI generated, δημιουργία από AI
+Ναι, φυσικά! Μπορούμε να κάνουμε τη γραμματοσειρά πολύ πιο ευδιάκριτη.
+
+Όσον αφορά το κείμενο που κόβεται στο τέλος (&hellip;]): Αυτό συμβαίνει επειδή το RSS feed που χρησιμοποιείτε στέλνει μόνο μια περίληψη του άρθρου και όχι ολόκληρο το κείμενο. Η εφαρμογή μας αυτή τη στιγμή εμφανίζει ό,τι της δίνει το feed.
+
+Βήμα 1: Πιο ευδιάκριτη γραμματοσειρά (CSS)
+Για να κάνουμε το κείμενο πιο καθαρό, θα χρησιμοποιήσουμε μια πιο «καθαρή» sans-serif γραμματοσειρά, θα αυξήσουμε ελαφρώς το μέγεθος και το ύψος της γραμμής (line-height) και θα κάνουμε το χρώμα του κειμένου πιο σκούρο για καλύτερη αντίθεση.
+
+Αντικαταστήστε το CSS για το Reader View στο αρχείο src/App.css με το παρακάτω:
+
+CSS
+/* --- READER VIEW (Πιο ευδιάκριτο) --- */
+.article-reader {
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  max-width: 800px; /* Λίγο πιο πλατύ για καλύτερη ανάγνωση */
+  margin: 0 auto;
+  /* Χρήση πιο καθαρής γραμματοσειράς συστήματος */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* ... τα άλλα styles για back-btn, reader-image κλπ παραμένουν ... */
+
+.full-article h2 {
+  font-size: 1.8rem; /* Πιο μεγάλος τίτλος */
+  font-weight: 700;
+  color: #111; /* Σχεδόν μαύρο για μέγιστη αντίθεση */
+  margin-bottom: 15px;
+  line-height: 1.3;
+}
+
+.article-body {
+  /* Αυξημένο ύψος γραμμής για να μην είναι "στριμωγμένο" το κείμενο */
+  line-height: 1.9; 
+  font-size: 1.15rem; /* Ελαφρώς μεγαλύτερο κείμενο */
+  color: #222; /* Σκούρο γκρι για καλή αντίθεση, χωρίς να είναι κουραστικό */
+  margin-top: 25px;
+}
+
+.article-body p {
+  margin-bottom: 20px; /* Περισσότερος χώρος μεταξύ των παραγράφων */
+}
+Αυτές οι αλλαγές θα κάνουν το κείμενο να «αναπνέει» και να διαβάζεται πολύ πιο εύκολα.
+
+Βήμα 2: Τι να κάνετε για το κείμενο που κόβεται
+Δυστυχώς, δεν μπορούμε να εμφανίσουμε κείμενο που δεν μας στέλνει το RSS feed. Η ένδειξη &hellip;] (τα αποσιωπητικά) μπαίνει από την ίδια την πηγή των ειδήσεων.
+
+Έχετε δύο επιλογές:
+
+Επιλογή Α (Πιο εύκολη):
+
+Να αποδεχτείτε ότι το RSS feed δίνει μόνο περίληψη. Σε αυτή την περίπτωση, είναι καλό να προσθέσετε ένα ξεκάθαρο κουμπί κάτω από το κείμενο που θα οδηγεί στην πηγή.
+
+Μπορείτε να ενημερώσετε το JSX στο src/App.jsx (μέσα στο Reader View):
+
+JavaScript
+{/* ... μετά το article-body ... */}
+<hr />
+<div className="source-link-container">
+  <p className="original-link">
+    Το παραπάνω κείμενο είναι περίληψη.
+  </p>
+  <a href={selectedArticle.link} target="_blank" rel="noopener noreferrer" className="view-original-btn">
+    Διαβάστε ολόκληρο το άρθρο στην πηγή
+  </a>
+</div>
+Και να προσθέσετε το αντίστοιχο CSS:
+
+CSS
+.source-link-container {
+  text-align: center;
+  margin-top: 30px;
+}
+.view-original-btn {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: #3498db;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: bold;
+}
+Επιλογή Β (Πιο δύσκολη):
+
+Να χρησιμοποιήσετε μια εξωτερική υπηρεσία (όπως το FiveFilters Full-Text RSS ή ένα δικό σας proxy server) που «διαβάζει» το link του άρθρου και προσπαθεί να «τραβήξει» ολόκληρο το κείμενο από την ιστοσελίδα. Αυτό όμως κάνει την εφαρμογή πιο αργή και είναι πιο περίπλοκο στην υλοποίηση.
+
+Εχω μιά λιστα με RSS την const rssUrlList = [
+
+  "https://www.newsbeast.gr/feed",
+
+  "https://www.newsbeast.gr/greece/feed",
+
+  "https://www.newsbeast.gr/world/feed",
+
+  "https://www.newsbeast.gr/technology/feed",
+
+  "https://www.newsbeast.gr/sports/feed",
+
+  "https://www.newsbeast.gr/culture/feed",
+
+  "https://www.newsbeast.gr/science/feed",
+
+  "https://www.newsbeast.gr/health/feed",
+
+  "https://www.newsbeast.gr/travel/feed",
+
+  "https://www.newsbeast.gr/opinion/feed",
+
+  "https://www.newsbeast.gr/entertainment/feed",
+
+  "https://www.newsbomb.gr/oles-oi-eidhseis?format=feed&type=rss",
+
+  "https://www.in.gr/rss",
+
+  "https://devblogs.microsoft.com/rss/",
+
+  "https://www.dwrean.net/feeds/posts/default?alt=rss",
+
+  "https://www.tanea.gr/?feed=rss2"} Πως στο useEffect(() => {
+
+    const fetchNews = async () => {
+
+      try { ..... στο apiUrl να φέρνει ένα ένα τα RSS και να τα κάνει fetch στο  const response = await fetch(apiUrl);
+
+  "https://www.kathimerini.gr/infeeds/rss/nx-rss-feed.xml",
+
+  "https://tovima.gr/feed",
+
+  "https://en.protothema.gr/feed",
+
+  "https://www.vradini.gr/feed/",
+
+  "https://www.naftemporiki.gr/feed/",
+
+  "https://www.ethnos.gr/rss-news?positionid=1",
+
+  "https://feeds.bbci.co.uk/news/world/rss.xml ",
+
+  "https://www.theguardian.com/world/rss",
+
+  "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+
+  "https://www.aljazeera.com/xml/rss/all.xml"
+
+];
+
+Για να φέρετε ειδήσεις από μια λίστα με πολλά RSS feeds, υπάρχουν δύο βασικοί τρόποι ανάλογα με το πώς θέλετε να λειτουργεί η εφαρμογή σας:
+
+Παράλληλη φόρτωση όλων των feeds (Promise.all): Φέρνει όλα τα RSS ταυτόχρονα, τα ενώνει σε μία μεγάλη λίστα και τα ταξινομεί χρονολογικά.
+
+Επιλογή κατηγορίας / πηγής (Dropdown/Select): Ο χρήστης επιλέγει ποιο RSS θέλει να βλέπει κάθε φορά.
+
+Τρόπος 1: Φόρτωση όλων των RSS Feeds παράλληλα (Συνιστάται)
+Με αυτόν τον τρόπο, η useEffect εκτελεί ένα fetch για κάθε URL της λίστας, μαζεύει όλα τα άρθρα, τα συγχωνεύει και τα ταξινομεί ώστε τα νεότερα να εμφανίζονται πρώτα.
+
+Κώδικας src/App.jsx:
+JavaScript
+import { useState, useEffect } from 'react';
+import './App.css';
+
+const rssUrlList = [
+  "https://www.newsbeast.gr/feed",
+  "https://www.newsbeast.gr/greece/feed",
+  "https://www.newsbeast.gr/world/feed",
+  "https://www.newsbeast.gr/technology/feed",
+  "https://www.newsbeast.gr/sports/feed",
+  "https://www.newsbeast.gr/culture/feed",
+  "https://www.newsbeast.gr/science/feed",
+  "https://www.newsbeast.gr/health/feed",
+  "https://www.newsbeast.gr/travel/feed",
+  "https://www.newsbeast.gr/opinion/feed",
+  "https://www.newsbeast.gr/entertainment/feed",
+  "https://www.newsbomb.gr/oles-oi-eidhseis?format=feed&type=rss",
+  "https://www.in.gr/rss",
+  "https://devblogs.microsoft.com/rss/",
+  "https://www.dwrean.net/feeds/posts/default?alt=rss",
+  "https://www.tanea.gr/?feed=rss2",
+  "https://www.kathimerini.gr/infeeds/rss/nx-rss-feed.xml",
+  "https://tovima.gr/feed",
+  "https://en.protothema.gr/feed",
+  "https://www.vradini.gr/feed/",
+  "https://www.naftemporiki.gr/feed/",
+  "https://www.ethnos.gr/rss-news?positionid=1",
+  "https://feeds.bbci.co.uk/news/world/rss.xml",
+  "https://www.theguardian.com/world/rss",
+  "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+  "https://www.aljazeera.com/xml/rss/all.xml"
+];
+
+function App() {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchAllNews = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // 1. Δημιουργούμε έναν πίνακα με όλα τα fetch promises
+        const fetchPromises = rssUrlList.map(async (rssUrl) => {
+          try {
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            
+            if (data.status === 'ok') {
+              // Προσθέτουμε σε κάθε άρθρο τον τίτλο της πηγής για να ξέρουμε από πού ήρθε
+              return data.items.map((item) => ({
+                ...item,
+                sourceTitle: data.feed.title || 'Ειδήσεις'
+              }));
+            }
+            return [];
+          } catch (err) {
+            console.warn(`Αποτυχία φόρτωσης για το feed: ${rssUrl}`, err);
+            return []; // Αν ένα feed αποτύχει, επιστρέφουμε κενό πίνακα για να μη σπάσει η εφαρμογή
+          }
+        });
+
+        // 2. Εκτελούμε όλα τα requests παράλληλα
+        const results = await Promise.all(fetchPromises);
+
+        // 3. Ενώνουμε όλους τους πίνακες άρθρων σε έναν (flat)
+        const combinedArticles = results.flat();
+
+        // 4. Ταξινομούμε τα άρθρα από το νεότερο προς το παλαιότερο
+        combinedArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+        setArticles(combinedArticles);
+      } catch (err) {
+        setError('Σφάλμα κατά τη φόρτωση των ειδήσεων.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllNews();
+  }, []);
+
+  return (
+    <div className="container">
+      <header className="header">
+        <h1>🗞️ Εφαρμογή Ειδήσεων RSS</h1>
+        <p>Συγκέντρωση ειδήσεων από {rssUrlList.length} πηγές</p>
+      </header>
+
+      {loading && <div className="status">⏳ Φόρτωση ειδήσεων από όλες τις πηγές...</div>}
+      {error && <div className="status error">{error}</div>}
+
+      {!loading && !error && (
+        <div className="news-grid">
+          {articles.map((item, index) => (
+            <article key={index} className="news-card">
+              {(item.thumbnail || item.enclosure?.link) && (
+                <img
+                  src={item.thumbnail || item.enclosure?.link}
+                  alt={item.title}
+                  className="news-image"
+                />
+              )}
+              <div className="news-content">
+                <span className="source-badge">{item.sourceTitle}</span>
+                <h2>{item.title}</h2>
+                <p className="pub-date">
+                  📅 {new Date(item.pubDate).toLocaleString('el-GR')}
+                </p>
+                <p>{(item.description || '').replace(/<[^>]*>?/gm, '').substring(0, 120)}...</p>
+                <a
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="read-more-btn"
+                >
+                  Διαβάστε περισσότερα →
+                </a>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;
+Τρόπος 2: Επιλογή συγκεκριμένου RSS Feed από Dropdown (Select Box)
+Αν δεν θέλετε να φορτώνουν όλα τα feeds μαζί (για λόγους ταχύτητας), μπορείτε να βάλετε ένα μενού επιλογής ώστε ο χρήστης να διαλέγει ποιο feed θέλει να διαβάσει:
+
+JavaScript
+import { useState, useEffect } from 'react';
+
+function App() {
+  const [selectedRss, setSelectedRss] = useState(rssUrlList[0]);
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        setLoading(true);
+        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(selectedRss)}`;
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.status === 'ok') {
+          setArticles(data.items);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNews();
+  }, [selectedRss]); // Εκτελείται ξανά κάθε φορά που αλλάζει το selectedRss
+
+  return (
+    <div>
+      {/* Dropdown επιλογής Πηγής */}
+      <select value={selectedRss} onChange={(e) => setSelectedRss(e.target.value)}>
+        {rssUrlList.map((url, index) => (
+          <option key={index} value={url}>
+            {url.replace('https://www.', '').replace('https://', '')}
+          </option>
+        ))}
+      </select>
+
+      {/* Λίστα ειδήσεων ... */}
+    </div>
+  );
+}
+💡 Πλεονεκτήματα του Τρόπου 1 (Promise.all):
+Ανθεκτικότητα σε σφάλματα: Αν κάποιο RSS feed είναι εκτός λειτουργίας, η try...catch μέσα στο map το προσπερνάει χωρίς να "κρασάρει" η εφαρμογή.
+
+Ταξινόμηση: Με το combinedArticles.sort(...), όλες οι ειδήσεις από όλα τα sites μπαίνουν σε μια ενιαία χρονολογική σειρά.
+
+Θα μπορούσε να φέρνει την εξωτερική σελίδα και σε iframe;
+
+Ναι, ασφαλώς και γίνεται! Μπορείτε να προσθέσετε μια επιλογή/κουμπί που θα επιτρέπει στον χρήστη να ανοίγει την εξωτερική ιστοσελίδα απευθείας μέσα σε ένα <iframe> (modal / παράθυρο), παράλληλα με το κείμενο της περίληψης.
+
+Ωστόσο, θυμηθείτε τον σημαντικό περιορισμό των iframe:
+Πολλά ειδησεογραφικά sites (π.χ. BBC, Καθημερινή, Protothema κ.ά.) μπλοκάρουν την προβολή των σελίδων τους μέσα σε iframe για λόγους ασφαλείας (X-Frame-Options header). Σε αυτές τις περιπτώσεις, το iframe θα εμφανίσει λευκή σελίδα ή σφάλμα σύνδεσης.   
+JPG
+
+Πώς να προσθέσετε το iframe Modal στο App.jsx
+1️⃣ Προσθέστε ένα νέο State για το iframe
+Στο src/App.jsx, προσθέστε ένα state iframeUrl που θα κρατάει το URL της σελίδας όταν ο χρήστης θέλει να την ανοιξει σε iframe:
+
+JavaScript
+// State για το URL που προβάλλεται στο iframe Modal
+const [iframeUrl, setIframeUrl] = useState(null);
+2️⃣ Προσθέστε κουμπί "Προβολή σε iframe" στο Reader View
+Μέσα στο article-reader (στο Reader View), προσθέστε ένα κουμπί που θα ανοίγει το iframe Modal:
+
+JavaScript
+{/* --- READER VIEW --- */}
+{!loading && !error && selectedArticle && (
+  <div className="article-reader">
+    <div className="reader-actions">
+      <button
+        className="back-btn"
+        onClick={() => {
+          setSelectedArticle(null);
+          setFullArticleHtml('');
+        }}
+      >
+        ← Πίσω στη λίστα ειδήσεων
+      </button>
+
+      {/* 🟢 Κουμπί για άνοιγμα σε iframe */}
+      <button
+        className="iframe-btn"
+        onClick={() => setIframeUrl(selectedArticle.link)}
+      >
+        🖥️ Προβολή σε iframe
+      </button>
+    </div>
+
+    <article className="full-article">
+      {/* ... ο υπόλοιπος κώδικας του άρθρου (εικόνα, τίτλος, κείμενο) ... */}
+    </article>
+  </div>
+)}
+3️⃣ Προσθέστε το Modal με το <iframe> στο τέλος του JSX
+Πριν το κλείσιμο του αρχικού </div> του App(), προσθέστε το παράθυρο Modal:
+
+JavaScript
+      {/* 🟢 MODAL ME IFRAME */}
+      {iframeUrl && (
+        <div className="iframe-modal-overlay" onClick={() => setIframeUrl(null)}>
+          <div className="iframe-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="iframe-header">
+              <span>Προβολή Ιστοσελίδας</span>
+              <button className="close-iframe-btn" onClick={() => setIframeUrl(null)}>
+                ✖ Κλείσιμο
+              </button>
+            </div>
+            <iframe
+              src={iframeUrl}
+              title="Προβολή εξωτερικής σελίδας"
+              className="news-iframe"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+🎨 Προσθήκη CSS στο src/App.css
+Προσθέστε τα παρακάτω styles στο src/App.css για τη σωστή εμφάνιση του Modal και του iframe:
+
+CSS
+/* Κουμπιά στο Reader View */
+.reader-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.iframe-btn {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 25px;
+}
+
+.iframe-btn:hover {
+  background-color: #219150;
+}
+
+/* Modal Overlay (Σκούρο φόντο) */
+.iframe-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Modal Content Box */
+.iframe-modal-content {
+  background: #ffffff;
+  width: 90%;
+  height: 85%;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+}
+
+.iframe-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #2c3e50;
+  color: white;
+  font-weight: bold;
+}
+
+.close-iframe-btn {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.close-iframe-btn:hover {
+  background: #c0392b;
+}
+
+.news-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+💡 Πώς λειτουργεί:
+Όταν ο χρήστης βρίσκεται μέσα σε ένα άρθρο, βλέπει το κουμπί «🖥️ Προβολή σε iframe».
+
+Πατώντας το, ανοίγει ένα αναδυόμενο παράθυρο (modal) πάνω από την εφαρμογή με την πρωτότυπη ιστοσελίδα.
+
+Αν το συγκεκριμένο site επιτρέπει το framing, η σελίδα θα εμφανιστεί κανονικά. Αν το μπλοκάρει, ο χρήστης μπορεί να πατήσει «✖ Κλείσιμο» και να επιστρέψει στο κείμενο του Reader View.
+
+Οταν φορτώνεται η σελίδα βγάζει τα παρακάτω λάθη react-dom_client.js?v=5a273359:15805 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.dwrean.net%2Ffeeds%2Fposts%2Fdefault%3Falt%3Drss 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Ftovima.gr%2Ffeed 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.in.gr%2Frss 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.kathimerini.gr%2Finfeeds%2Frss%2Fnx-rss-feed.xml 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fdevblogs.microsoft.com%2Frss%2F 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.newsbeast.gr%2Fhealth%2Ffeed 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8401
+
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=5a273359:8388
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8413
+
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=5a273359:9699
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9692
+
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9707
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9584
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.newsbeast.gr%2Fhealth%2Ffeed 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.newsbeast.gr%2Fopinion%2Ffeed 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fen.protothema.gr%2Ffeed 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.tanea.gr%2F%3Ffeed%3Drss2 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.newsbeast.gr%2Ftechnology%2Ffeed 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.vradini.gr%2Ffeed%2F 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.newsbomb.gr%2Foles-oi-eidhseis%3Fformat%3Dfeed%26type%3Drss 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.newsbeast.gr%2Ftravel%2Ffeed 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.dwrean.net%2Ffeeds%2Fposts%2Fdefault%3Falt%3Drss 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8401
+
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=5a273359:8388
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8413
+
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=5a273359:9699
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9692
+
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9707
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9584
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.vradini.gr%2Ffeed%2F 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8401
+
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=5a273359:8388
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8413
+
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=5a273359:9699
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9692
+
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9707
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9584
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.newsbeast.gr%2Fentertainment%2Ffeed 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8401
+
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=5a273359:8388
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8413
+
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=5a273359:9699
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9692
+
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9707
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9584
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.newsbomb.gr%2Foles-oi-eidhseis%3Fformat%3Dfeed%26type%3Drss 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8401
+
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=5a273359:8388
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8413
+
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=5a273359:9699
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9692
+
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9707
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9584
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.ethnos.gr%2Frss-news%3Fpositionid%3D1 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8401
+
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=5a273359:8388
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8413
+
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=5a273359:9699
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9692
+
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9707
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9584
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fen.protothema.gr%2Ffeed 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8401
+
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=5a273359:8388
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8413
+
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=5a273359:9699
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9692
+
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9707
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9584
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.in.gr%2Frss 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8401
+
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=5a273359:8388
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8413
+
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=5a273359:9699
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9692
+
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9707
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9584
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.newsbeast.gr%2Fentertainment%2Ffeed 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.tanea.gr%2F%3Ffeed%3Drss2 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8401
+
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=5a273359:8388
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8413
+
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=5a273359:9699
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9692
+
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9707
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9584
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.kathimerini.gr%2Finfeeds%2Frss%2Fnx-rss-feed.xml 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8401
+
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=5a273359:8388
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8413
+
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=5a273359:9699
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9692
+
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9707
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9584
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.newsbeast.gr%2Ftravel%2Ffeed 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8401
+
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=5a273359:8388
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8413
+
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=5a273359:9699
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9692
+
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9707
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9584
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.ethnos.gr%2Frss-news%3Fpositionid%3D1 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.newsbeast.gr%2Ftechnology%2Ffeed 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8401
+
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=5a273359:8388
+
+reconnectPassiveEffects @ react-dom_client.js?v=5a273359:8413
+
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=5a273359:9699
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9692
+
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=5a273359:9707
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9584
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Ffeeds.bbci.co.uk%2Fnews%2Fworld%2Frss.xml 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassiveMountEffects @ react-dom_client.js?v=5a273359:6936
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8313
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8372
+
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=5a273359:8300
+
+commitPassiveMountOnFiber @ react-dom_client.js?v=5a273359:8322
+
+flushPassiveEffects @ react-dom_client.js?v=5a273359:9583
+
+(anonymous) @ react-dom_client.js?v=5a273359:9312
+
+performWorkUntilDeadline @ react-dom_client.js?v=5a273359:36
+
+<App>
+
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=5a273359:200
+
+(anonymous) @ main.jsx:8
+
+App.jsx:54  GET https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fdevblogs.microsoft.com%2Frss%2F 429 (Too Many Requests)
+
+(anonymous) @ App.jsx:54
+
+(anonymous) @ App.jsx:51
+
+(anonymous) @ App.jsx:88
+
+react_stack_bottom_frame @ react-dom_client.js?v=5a273359:14178
+
+runWithFiberInDEV @ react-dom_client.js?v=5a273359:944
+
+commitHookEffectListMount @ react-dom_client.js?v=5a273359:6901
+
+commitHookPassive
+
+Το κύριο σφάλμα που αντιμετωπίζετε είναι το 429 (Too Many Requests) από την υπηρεσία api.rss2json.com.
+
+1. Γιατί συμβαίνει αυτό;
+Όριο αιτημάτων (Rate Limit) της δωρεάν υπηρεσίας:
+
+Η δωρεάν έκδοση του rss2json.com επιτρέπει περιορισμένο αριθμό αιτημάτων (π.χ. έως 10.000 αιτήματα/ημέρα ή συγκεκριμένο όριο ανά λεπτό/ώρα ανά διεύθυνση IP).
+
+Πολλά ταυτόχρονα αιτήματα:
+
+Η εφαρμογή σας προσπαθεί να φορτώσει ταυτόχρονα δεκάδες RSS feeds (Newsbeast, Καθημερινή, Το Βήμα, BBC, κ.λπ.) κατά την αρχική φόρτωση της σελίδας.
+
+React Strict Mode (Διπλή εκτέλεση των useEffect):
+
+Στο περιβάλλον ανάπτυξης (Development mode), το React Strict Mode εκτελεί τα useEffect δύο φορές (όπως φαίνεται στο stack trace από το doubleInvokeEffectsOnFiber), διπλασιάζοντας ακαριαία τον αριθμό των αιτημάτων που στέλνετε στο API.
+
+2. Πώς να το διορθώσετε (Προτεινόμενες Λύσεις)
+Α. Αποθήκευση στη μνήμη (Caching - LocalStorage ή Memory)
+Αντί να καλείτε το API κάθε φορά που φορτώνεται η σελίδα, αποθηκεύστε τα αποτελέσματα στο localStorage με χρόνο λήξης (π.χ. 15-30 λεπτά).
+
+JavaScript
+const fetchFeed = async (rssUrl) => {
+  const cacheKey = `rss_${encodeURIComponent(rssUrl)}`;
+  const cachedData = localStorage.getItem(cacheKey);
+  const cacheTime = localStorage.getItem(`${cacheKey}_time`);
+  const NOW = Date.now();
+  const FIFTEEN_MINUTES = 15 * 60 * 1000;
+
+  // Επιστροφή από την cache αν δεν έχουν περάσει 15 λεπτά
+  if (cachedData && cacheTime && NOW - cacheTime < FIFTEEN_MINUTES) {
+    return JSON.parse(cachedData);
+  }
+
+  try {
+    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    const data = await res.json();
+    
+    // Αποθήκευση στην cache
+    localStorage.setItem(cacheKey, JSON.stringify(data));
+    localStorage.setItem(`${cacheKey}_time`, NOW.toString());
+
+    return data;
+  } catch (error) {
+    console.error("Σφάλμα κατά τη φόρτωση του feed:", error);
+    // Αν αποτύχει το API, επιστρέφουμε τα παλιά δεδομένα αν υπάρχουν
+    return cachedData ? JSON.parse(cachedData) : null;
+  }
+};
+Β. Καθυστερημένη / Σταδιακή Φόρτωση (Lazy Loading & Batching)
+Μην φορτώνετε όλα τα feeds ταυτόχρονα κατά το mount του component:
+
+Φορτώστε μόνο τα feeds της ενεργής καρτέλας/κατηγορίας.
+
+Χρησιμοποιήστε Promise.all με καθυστέρηση (throttling/debouncing) ή φορτώστε τα σταδιακά ανά 2-3 αιτήματα.
+
+Γ. Χρήση API Key ή Εναλλακτικής Υπηρεσίας
+API Key στο RSS2JSON: Αν δημιουργήσετε δωρεάν λογαριασμό στο rss2json.com, μπορείτε να προσθέσετε &api_key=YOUR_API_KEY στο URL, αποκτώντας μεγαλύτερα όρια αιτημάτων.
+
+Εναλλακτικοί RSS to JSON Proxies / CORS Proxies:
+
+allorigins.win: Επιστρέφει το αυτούσιο XML/RSS περιεχόμενο μέσω CORS proxy, το οποίο μπορείτε να κάνετε parse στον browser με DOMParser.
+
+JavaScript
+const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`);
+const data = await res.json();
+const parser = new DOMParser();
+const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+Δ. Δημιουργία δικού σας Backend / Serverless Function (Η καλύτερη λύση για Production)
+Αντί ο client/browser να κάνει 20 αιτήματα απευθείας σε τρίτες υπηρεσίες:
+
+Δημιουργήστε ένα μικρό backend (Node.js, Express) ή Node/Python Serverless Function (Netlify Functions / Vercel Serverless).
+
+Το backend κάνει fetch τα RSS XML feeds, τα μετατρέπει σε JSON (χρησιμοποιώντας μια βιβλιοθήκη όπως το rss-parser), διατηρεί cache στη μνήμη (π.χ. για 10 λεπτά) και επιστρέφει τα δεδομένα έτοιμα στον React client.
+
+Backend / Serverless Function
+
+Δείτε έναν πλήρη, έτοιμο οδηγό για το πώς να υλοποιήσετε τη βέλτιστη λύση (Backend / Serverless Function), ώστε να λύσετε οριστικά το πρόβλημα του 429 Too Many Requests και να προστατεύσετε την εφαρμογή σας.
+
+Γιατί αυτή είναι η καλύτερη αρχιτεκτονική;
+Μηδενικά σφάλματα Rate Limit στον Client: Ο browser κάνει 1 αίτημα στο δικό σας backend αντί για 20+ ταυτόχρονα αιτήματα σε τρίτες υπηρεσίες.
+
+Server-side Caching: Το backend αποθηκεύει τα αποτελέσματα στη μνήμη (π.χ. για 10 λεπτά). Όσοι χρήστες κι αν επισκεφθούν το site σας, το backend θα καλεί τα RSS feeds μόνο μία φορά ανά δεκάλεπτο.
+
+Απευθείας Parsing του XML: Δεν εξαρτάστε από εξωτερικές δωρεάν υπηρεσίες όπως το rss2json.com. Κατεβάζετε απευθείας τα πρωτότυπα XML RSS και τα μετατρέπετε σε JSON.
+
+Επιλογή 1: Express.js Node.js Backend (Για δικό σας Server / VPS)
+Αν έχετε έναν απλό Node.js server (ή Deploy σε Render, Railway, Heroku):
+
+1. Εγκατάσταση εξαρτήσεων
+Bash
+npm install express cors rss-parser node-cache
+2. Κώδικας Server (server.js)
+JavaScript
+const express = require('express');
+const cors = require('cors');
+const Parser = require('rss-parser');
+const NodeCache = require('node-cache');
+
+const app = express();
+const parser = new Parser();
+
+// Cache για 10 λεπτά (600 δευτερόλεπτα)
+const feedCache = new NodeCache({ stdTTL: 600 });
+
+app.use(cors());
+
+const rssUrlList = [
+  "https://www.newsbeast.gr/feed",
+  "https://www.newsbeast.gr/greece/feed",
+  "https://www.newsbeast.gr/world/feed",
+  "https://www.newsbeast.gr/technology/feed",
+  "https://www.newsbeast.gr/sports/feed",
+  "https://www.newsbeast.gr/culture/feed",
+  "https://www.newsbeast.gr/science/feed",
+  "https://www.newsbeast.gr/health/feed",
+  "https://www.newsbeast.gr/travel/feed",
+  "https://www.newsbeast.gr/opinion/feed",
+  "https://www.newsbeast.gr/entertainment/feed",
+  "https://www.newsbomb.gr/oles-oi-eidhseis?format=feed&type=rss",
+  "https://www.in.gr/rss",
+  "https://devblogs.microsoft.com/rss/",
+  "https://www.dwrean.net/feeds/posts/default?alt=rss",
+  "https://www.tanea.gr/?feed=rss2",
+  "https://www.kathimerini.gr/infeeds/rss/nx-rss-feed.xml",
+  "https://tovima.gr/feed",
+  "https://en.protothema.gr/feed",
+  "https://www.vradini.gr/feed/",
+  "https://www.naftemporiki.gr/feed/",
+  "https://www.ethnos.gr/rss-news?positionid=1",
+  "https://feeds.bbci.co.uk/news/world/rss.xml",
+  "https://www.theguardian.com/world/rss",
+  "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+  "https://www.aljazeera.com/xml/rss/all.xml"
+];
+
+app.get('/api/news', async (req, res) => {
+  // 1. Έλεγχος αν υπάρχουν ήδη αποθηκευμένα δεδομένα στην Cache
+  const cachedNews = feedCache.get("all_news");
+  if (cachedNews) {
+    return res.json({ source: 'cache', items: cachedNews });
+  }
+
+  try {
+    // 2. Φόρτωση όλων των RSS Feeds παράλληλα
+    const fetchPromises = rssUrlList.map(async (url) => {
+      try {
+        const feed = await parser.parseURL(url);
+        return feed.items.map((item) => ({
+          title: item.title,
+          link: item.link,
+          pubDate: item.pubDate || item.isoDate,
+          contentSnippet: item.contentSnippet || item.summary || '',
+          sourceTitle: feed.title || 'Ειδήσεις',
+        }));
+      } catch (err) {
+        console.warn(`Αποτυχία φόρτωσης RSS: ${url}`);
+        return [];
+      }
+    });
+
+    const results = await Promise.all(fetchPromises);
+    const combinedArticles = results.flat();
+
+    // Ταξινόμηση από το νεότερο προς το παλαιότερο
+    combinedArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+    // 3. Αποθήκευση στην Cache
+    feedCache.set("all_news", combinedArticles);
+
+    res.json({ source: 'fresh', items: combinedArticles });
+  } catch (error) {
+    res.status(500).json({ error: 'Σφάλμα κατά την ανάκτηση των ειδήσεων' });
+  }
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+Επιλογή 2: Netlify Serverless Function (Ιδανικό αν φιλοξενείτε το site στο Netlify)
+Αν κάνετε deploy το React frontend στο Netlify, μπορείτε να προσθέσετε μια Serverless Function χωρίς να πληρώσετε ή να διαχειρίζεστε ξεχωριστό server.
+
+1. Δομή Φακέλων
+Στη ρίζα του React project σας:
+
+Plaintext
+my-react-app/
+├── netlify/
+│   └── functions/
+│       └── fetch-news.js
+├── src/
+├── package.json
+└── netlify.toml
+2. Κώδικας netlify/functions/fetch-news.js
+JavaScript
+const Parser = require('rss-parser');
+const parser = new Parser();
+
+const rssUrlList = [
+  "https://www.newsbeast.gr/feed",
+  "https://www.in.gr/rss",
+  "https://www.kathimerini.gr/infeeds/rss/nx-rss-feed.xml",
+  "https://tovima.gr/feed",
+  "https://feeds.bbci.co.uk/news/world/rss.xml"
+  // Προσθέστε τα υπόλοιπα URLs εδώ
+];
+
+exports.handler = async (event, context) => {
+  try {
+    const fetchPromises = rssUrlList.map(async (url) => {
+      try {
+        const feed = await parser.parseURL(url);
+        return feed.items.map((item) => ({
+          title: item.title,
+          link: item.link,
+          pubDate: item.pubDate || item.isoDate,
+          contentSnippet: item.contentSnippet || '',
+          sourceTitle: feed.title || 'Ειδήσεις',
+        }));
+      } catch (err) {
+        return [];
+      }
+    });
+
+    const results = await Promise.all(fetchPromises);
+    const combinedArticles = results.flat();
+    combinedArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        // Cache στο CDN του Netlify για 10 λεπτά (600d)
+        'Cache-Control': 'public, max-age=600, s-maxage=600'
+      },
+      body: JSON.stringify(combinedArticles),
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Failed to fetch feeds' }),
+    };
+  }
+};
+3. Πώς αλλάζει το React Frontend (App.jsx)
+Τώρα η useEffect στο React γίνεται απλούστατη:
+
+JavaScript
+useEffect(() => {
+  const fetchNews = async () => {
+    try {
+      setLoading(true);
+      // Καλούμε το δικό μας backend API αντί για το rss2json
+      const response = await fetch('http://localhost:5000/api/news'); // ή '/.netlify/functions/fetch-news'
+      const data = await response.json();
+      
+      setArticles(data.items || data);
+    } catch (err) {
+      setError('Αποτυχία φόρτωσης ειδήσεων.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchNews();
+}, []);
+Πριν το κλείσιμο του αρχικού </div> του App(), προσθέστε το παράθυρο Modal: Που ακριβώς; Γιατί βγάζει errors το VS CODE
+
+Το σφάλμα στο VS Code συμβαίνει επειδή το JSX απαιτεί όλα τα στοιχεία να επιστρέφονται μέσα σε ένα ενιαίο γονικό στοιχείο (wrapper). Αν τοποθετήσετε το Modal έξω από το επιστρεφόμενο return (...) ή μετά το κλείσιμο του κύριου </div>, το JSX σπάει συντακτικά.
+
+Δείτε ακριβώς πού μπαίνει το Modal μέσα στη δομή του App.jsx για να μην έχετε κανένα σφάλμα:
+
+Η σωστή δομή του App.jsx
+JavaScript
+import { useState, useEffect } from 'react';
+
+function App() {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [iframeUrl, setIframeUrl] = useState(null); // State για το iframe
+
+  // ... useEffect ή fetchNews κώδικας ...
+
+  return (
+    // 🟢 1. ΑΡΧΗ ΤΟΥ ΚΥΡΙΟΥ DIV (Πρέπει να περιλαμβάνει ΤΑ ΠΑΝΤΑ)
+    <div className="container">
+      
+      <header className="header">
+        <h1>🗞️ Εφαρμογή Ειδήσεων RSS</h1>
+      </header>
+
+      {/* Λίστα Ειδήσεων ή Reader View */}
+      <div className="news-grid">
+        {articles.map((item, index) => (
+          <article key={index} className="news-card">
+            <h3>{item.title}</h3>
+            
+            {/* Κουμπί για άνοιγμα του iframe Modal */}
+            <button onClick={() => setIframeUrl(item.link)}>
+              🖥️ Προβολή σε iframe
+            </button>
+          </article>
+        ))}
+      </div>
+
+      {/* 🟢 2. ΕΔΩ ΜΠΑΙΝΕΙ ΤΟ MODAL: 
+          Ακριβώς ΠΡΙΝ κλείσει το αρχικό <div className="container"> */}
+      {iframeUrl && (
+        <div className="iframe-modal-overlay" onClick={() => setIframeUrl(null)}>
+          <div className="iframe-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="iframe-header">
+              <span>Προβολή Ιστοσελίδας</span>
+              <button className="close-iframe-btn" onClick={() => setIframeUrl(null)}>
+                ✖ Κλείσιμο
+              </button>
+            </div>
+            <iframe
+              src={iframeUrl}
+              title="Προβολή εξωτερικής σελίδας"
+              className="news-iframe"
+            />
+          </div>
+        </div>
+      )}
+
+    </div> // 🔴 3. ΤΕΛΟΣ ΤΟΥ ΚΥΡΙΟΥ DIV (Εδώ κλείνει το αρχικό <div>)
+  );
+}
+
+export default App;
+⚠️ Συνήθη Λάθη που βγάζουν Error στο VS Code
+Τοποθέτηση έξω από το return:
+
+JavaScript
+// ❌ ΛΑΘΟΣ
+return (
+  <div className="container">...</div>
+);
+{iframeUrl && <div className="modal">...</div>} // Έξω από το return!
+Τοποθέτηση μετά το κλείσιμο του </div>:
+
+JavaScript
+// ❌ ΛΑΘΟΣ
+return (
+  <div className="container">
+    <h1>News</h1>
+  </div> // Έκλεισε το αρχικό div εδώ!
+
+  {iframeUrl && <div className="modal">...</div>} // Το JSX έχει 2 root elements
+);
+Ξεχασμένο κλείσιμο tag (/>):
+Βεβαιωθείτε ότι το <iframe> κλείνει είτε με /> είτε με </iframe>.
+
+Γιατί δεν εμφανίζονται οι τελευταίες ειδήσεις; Η ώρα είναι 14:23 και εμφανίζει πρώτη είδηση για 5/10/2026, 10:52:00 π.μ. Επίσης μετά τις αλλαγές δεν εμφανίζει το RSS από το οποίο προέρχεται η είδηση.
+
+Δύο είναι οι κύριες αιτίες για τα προβλήματα που παρατηρείτε μετά τις αλλαγές στο backend/serverless:
+
+1. Γιατί η πιο πρόσφατη είδηση είναι στις 10:52 π.μ. (ενώ η ώρα είναι 14:23);
+Υπάρχουν δύο πιθανές αιτίες:
+
+Διαφορά Ζώνης Ώρας (Timezone Issue):
+Τα RSS feeds επιστρέφουν ημερομηνίες σε UTC / GMT. Η ώρα Ελλάδος (EEST) απέχει +3 ώρες από το UTC.   
+JPG
+
+Όταν μια είδηση δημοσιεύεται στις 13:52:00 (ώρα Ελλάδας), το RSS feed τη καταγράφει ως 10:52:00 UTC.
+
+Αν στη μετατροπή/προβολή της ημερομηνίας στο frontend δεν λαμβάνεται υπόψη η τοπική ζώνη ώρας (local timezone), η είδηση εμφανίζεται 3 ώρες πίσω.
+
+Caching στο Backend / Serverless Function:
+Αν χρησιμοποιείτε serverless function (π.χ. στο Netlify) ή node-cache στον Node.js server και έχει οριστεί πολύ μεγάλος χρόνος caching (ή το CDN του Netlify επιστρέφει cached response), η εφαρμογή δεν κατεβάζει τα νεότερα feeds.
+
+2. Γιατί δεν εμφανίζεται η πηγή (RSS Feed) της είδησης;
+Όταν χρησιμοποιούσατε το API του rss2json.com, η υπηρεσία εκείνη πρόσθετε αυτόματα ένα πεδίο feed.title ή source στο JSON.   
+JPG
+
+Με τη χρήση του rss-parser στο δικό σας backend:
+
+Το πεδίο που επιστρέφει ο parser για τον τίτλο του RSS feed είναι το feed.title.
+
+Αν στο frontend ζητάτε κάποιο διαφορετικό πεδίο (π.χ. item.source αντί για item.sourceTitle), το UI δεν βρίσκει την πληροφορία και δεν την εμφανίζει.
+
+🛠️ Πώς να διορθώσετε και τα δύο προβλήματα
+Α. Διόρθωση στο Backend (server.js ή Netlify Function)
+Βεβαιωθείτε ότι στο backend χαρτογραφείτε σωστά τον τίτλο της πηγής (sourceTitle) και ότι στέλνετε σωστά την ημερομηνία:
+
+JavaScript
+const fetchPromises = rssUrlList.map(async (url) => {
+  try {
+    const feed = await parser.parseURL(url);
+    
+    // Καθαρισμός/απλοποίηση του τίτλου της πηγής (π.χ. "Newsbeast.gr")
+    const sourceName = feed.title ? feed.title.replace(/(\r\n|\n|\r)/gm, "").trim() : 'Ειδήσεις';
+
+    return feed.items.map((item) => ({
+      title: item.title,
+      link: item.link,
+      // Αποθηκεύουμε την ημερομηνία σε ISO format
+      pubDate: item.isoDate || item.pubDate || new Date().toISOString(),
+      contentSnippet: item.contentSnippet || item.summary || '',
+      sourceTitle: sourceName, // 👈 Εδώ στέλνουμε την πηγή
+    }));
+  } catch (err) {
+    console.warn(`Αποτυχία φόρτωσης RSS: ${url}`);
+    return [];
+  }
+});
+(Αν χρησιμοποιείτε Netlify Serverless Function, μειώστε το Cache-Control σε max-age=180, s-maxage=180 ώστε να ανανεώνεται ανά 3 λεπτά).
+
+Β. Διόρθωση στο React Frontend (App.jsx / News Card Component)
+Για την ώρα Ελλάδος: Χρησιμοποιήστε τη μέθοδο .toLocaleString('el-GR') της JavaScript, η οποία μετατρέπει αυτόματα την UTC ώρα στην τοπική ώρα Ελλάδος:
+
+JavaScript
+// Συνάρτηση μορφοποίησης ημερομηνίας σε ώρα Ελλάδος
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleString('el-GR', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
+Για την εμφάνιση της Πηγής RSS: Προσθέστε το πεδίο {item.sourceTitle} στην κάρτα της είδησης:   
+JPG
+
+JavaScript
+<div className="news-card">
+  <img src={item.image} alt={item.title} />
+  
+  <div className="news-card-content">
+    {/* 🏷️ ΕΜΦΑΝΙΣΗ ΠΗΓΗΣ */}
+    {item.sourceTitle && (
+      <span className="news-source-badge">
+        📍 {item.sourceTitle}
+      </span>
+    )}
+
+    <h3>{item.title}</h3>
+    
+    {/* 🗓️ ΕΜΦΑΝΙΣΗ ΗΜΕΡΟΜΗΝΙΑΣ (Με σωστή τοπική ώρα) */}
+    <p className="news-date">
+      📅 {formatDate(item.pubDate)}
+    </p>
+
+    <p className="news-snippet">{item.contentSnippet}</p>
+
+    <a href={item.link} target="_blank" rel="noopener noreferrer" className="read-more-btn">
+      Διαβάστε περισσότερα →
+    </a>
+  </div>
+</div>
+Οχι δεν έκανα ακόμα αλλαγές στο backend/serverless:
+
+Αυτό εξηγεί τα πάντα! Εφόσον δεν έχετε κάνει ακόμη τις αλλαγές στο backend και η εφαρμογή σας εξακολουθεί να καλεί απευθείας το api.rss2json.com από τον browser (React frontend), τα δύο αυτά προβλήματα οφείλονται στους εξής λόγους:
+
+1. Γιατί η ώρα δείχνει 10:52 (ενώ είναι 14:23);
+Διαφορά Ώρας UTC vs Ώρας Ελλάδος (+3 ώρες):
+
+Το API του rss2json επιστρέφει τις ημερομηνίες (pubDate) σε UTC (Coordinated Universal Time).   
+JPG
+
+Η ώρα Ελλάδος (EEST) είναι UTC+3. Όταν μια είδηση δημοσιεύεται στις 13:52:00 (ώρα Ελλάδος), το API σάς στέλνει την συμβολοσειρά 10:52:00.
+
+Αν εμφανίζετε το κείμενο της ημερομηνίας απευθείας όπως έρχεται από το API, φαίνεται 3 ώρες πίσω.   
+JPG
+
+Caches του rss2json.com:
+
+Η δωρεάν υπηρεσία rss2json.com κρατάει δική της μνήμη (cache) για κάθε RSS feed που της ζητάτε και ανανεώνεται ανά τακτά χρονικά διαστήματα (π.χ. κάθε 1-2 ώρες). Επομένως, δεν φέρνει αμέσως τις ειδήσεις του τελευταίου λεπτού.
+
+2. Γιατί δεν εμφανίζεται το όνομα της πηγής (RSS Feed);
+Στο API του rss2json.com, το όνομα της πηγής (π.χ. "Newsbeast", "Η Καθημερινή") περιέχεται στο αντικείμενο feed.title της απόκρισης και όχι μέσα στα στοιχεία του κάθε άρθρου (item).
+
+Αν στο React mapping παίρνετε μόνο τον πίνακα data.items, χάνεται ο τίτλος του feed.   
+JPG
+
+🛠️️ Πώς να το διορθώσετε άμεσα στο React Frontend
+Μπορείτε να λύσετε αυτά τα δύο προβλήματα καθαρά στο React τροποποιώντας τον τρόπο που διαβάζετε τα δεδομένα και μορφοποιείτε την ημερομηνία:
+
+Step 1: Προσθέστε συνάρτηση μετατροπής UTC σε Ώρα Ελλάδος
+Προσθέστε αυτή τη μικρή συνάρτηση στην αρχή του App.jsx:   
+JPG
+
+JavaScript
+// Μετατρέπει την UTC ημερομηνία σε τοπική ώρα Ελλάδος
+const formatToLocalTime = (dateString) => {
+  if (!dateString) return '';
+  // Αντικατάσταση του κενού με 'T' για σωστό ISO parsing από τον Browser
+  const isoFormatted = dateString.replace(' ', 'T');
+  const date = new Date(isoFormatted);
+  
+  return date.toLocaleString('el-GR', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
+Step 2: Αποθηκεύστε το feed.title στα items κατά το fetch
+Όταν καλείτε το rss2json, προσθέστε το πεδίο sourceTitle μέσα σε κάθε άρθρο:   
+JPG
+
+JavaScript
+const fetchSingleFeed = async (rssUrl) => {
+  try {
+    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
+    const data = await res.json();
+    
+    if (data.status === 'ok') {
+      // Προσθέτουμε τον τίτλο του Feed (π.χ. "Newsbeast") σε κάθε item
+      return data.items.map(item => ({
+        ...item,
+        sourceTitle: data.feed.title || 'Ειδήσεις' // 👈 Αποθήκευση πηγής
+      }));
+    }
+    return [];
+  } catch (err) {
+    return [];
+  }
+};
+Step 3: Εμφανίστε την Πηγή & τη διορθωμένη Ώρα στην Κάρτα Ειδήσεων
+Στο JSX κομμάτι όπου εμφανίζετε την κάθε κάρτα είδησης:   
+JPG
+
+JavaScript
+<div className="news-card">
+  <img src={item.thumbnail || item.enclosure?.link} alt={item.title} />
+  
+  <div className="news-card-content">
+    
+    {/* 📍 ΕΜΦΑΝΙΣΗ ΠΗΓΗΣ (RSS) */}
+    {item.sourceTitle && (
+      <span className="news-source-badge" style={{ fontSize: '0.85rem', color: '#0066cc', fontWeight: 'bold' }}>
+        📰 {item.sourceTitle}
+      </span>
+    )}
+
+    <h3>{item.title}</h3>
+    
+    {/* 📅 ΕΜΦΑΝΙΣΗ ΔΙΟΡΘΩΜΕΝΗΣ ΩΡΑΣ (Ελλάδος) */}
+    <p className="news-date">
+      🗓️ {formatToLocalTime(item.pubDate)}
+    </p>
+
+    <p className="news-snippet">{item.description?.replace(/<[^>]*>?/gm, '').substring(0, 120)}...</p>
+
+    <button onClick={() => setIframeUrl(item.link)} className="read-more-btn">
+      Διαβάστε περισσότερα →
+    </button>
+  </div>
+</div>
+Ο κώδικας περιέχει        /* ΑΝ ΔΕΝ ΕΧΕΙ ΕΠΙΛΕΓΕΙ ΑΡΘΡΟ: Εμφάνιση Λίστας / Cards */
+
+        !loading && !error && (
+
+          <div className="news-grid">
+
+            {articles.map((item, index) => (
+
+              <article key={index} className="news-card">
+
+                {(item.thumbnail || item.enclosure?.link) && (
+
+                  <img
+
+                    src={item.thumbnail || item.enclosure?.link}
+
+                    alt={item.title}
+
+                    className="news-image"
+
+                  />
+
+                )}
+
+                <div className="news-content">
+
+                <h2>{item.title}</h2>
+
+        <p className="pub-date">
+
+    📅 {formatToLocalTime(item.pubDate)}
+
+  </p> και δεν βρίσκω τα παραπάνω
+
+Το πρόβλημα βρίσκεται στο πώς αποθηκεύεται ο τίτλος της πηγής (RSS feed) όταν καλείτε το API του rss2json.com.   
+JPG
+
+Στο API του rss2json, ο τίτλος του ειδησεογραφικού site δεν βρίσκεται μέσα στο κάθε άρθρο (item.sourceTitle), αλλά στη ρίζα της απόκρισης, στο πεδίο data.feed.title.   
+JPG
+
+Για να εμφανίζονται η πηγή και η σωστή ώρα σε όλες τις κάρτες, αντικαταστήστε το τμήμα της λίστας (news-grid) στο App.jsx με τον παρακάτω κώδικα:
+
+JavaScript
+{/* ΑΝ ΔΕΝ ΕΧΕΙ ΕΠΙΛΕΓΕΙ ΑΡΘΡΟ: Εμφάνιση Λίστας / Cards */}
+{!loading && !error && (
+  <div className="news-grid">
+    {articles.map((item, index) => (
+      <article key={index} className="news-card">
+        {(item.thumbnail || item.enclosure?.link) && (
+          <img
+            src={item.thumbnail || item.enclosure?.link}
+            alt={item.title}
+            className="news-image"
+          />
+        )}
+        <div className="news-content">
+          {/* 📍 1. ΕΜΦΑΝΙΣΗ ΠΗΓΗΣ (RSS Feed) */}
+          {(item.sourceTitle || item.feedTitle) && (
+            <span className="news-source-badge" style={{ display: 'inline-block', marginBottom: '8px', color: '#0066cc', fontWeight: 'bold', fontSize: '0.85rem' }}>
+              📰 {item.sourceTitle || item.feedTitle}
+            </span>
+          )}
+
+          <h2>{item.title}</h2>
+
+          {/* 📅 2. ΕΜΦΑΝΙΣΗ ΗΜΕΡΟΜΗΝΙΑΣ & ΩΡΑΣ */}
+          <p className="pub-date">
+            📅 {formatToLocalTime(item.pubDate)}
+          </p>
+
+          <p className="news-snippet">
+            {item.description?.replace(/<[^>]*>?/gm, '').substring(0, 120)}...
+          </p>
+
+          <button onClick={() => setIframeUrl(item.link)} className="read-more-btn">
+            Διαβάστε περισσότερα →
+          </button>
+        </div>
+      </article>
+    ))}
+  </div>
+)}
+⚠️ Πολύ Σημαντικό: Ενημέρωση της συνάρτησης Fetch
+Για να έχει η κάθε κάρτα το πεδίο sourceTitle, πρέπει την ώρα που κατεβάζετε το RSS feed να προσθέτετε τον τίτλο του feed μέσα σε κάθε άρθρο:   
+JPG
+
+JavaScript
+const fetchSingleFeed = async (rssUrl) => {
+  try {
+    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
+    const data = await res.json();
+    
+    if (data.status === 'ok') {
+      // Παίρνουμε τον τίτλο της πηγής από το data.feed.title
+      const feedName = data.feed?.title || 'Ειδήσεις';
+
+      // Προσθέτουμε το sourceTitle σε κάθε item
+      return data.items.map(item => ({
+        ...item,
+        sourceTitle: feedName 
+      }));
+    }
+    return [];
+  } catch (err) {
+    return [];
+  }
+};
+Βγάζει λάθη το VS Code μετά τις αλλαγές που κάνω. Το App.jsx είναι import { useState, useEffect } from 'react';
+
+import './App.css';
+
+
+
+const rssUrlList = [
+
+  "https://www.newsbeast.gr/feed",
+
+  "https://www.newsbeast.gr/greece/feed",
+
+  "https://www.newsbeast.gr/world/feed",
+
+  "https://www.newsbeast.gr/technology/feed",
+
+  "https://www.newsbeast.gr/sports/feed",
+
+  "https://www.newsbeast.gr/culture/feed",
+
+  "https://www.newsbeast.gr/science/feed",
+
+  "https://www.newsbeast.gr/health/feed",
+
+  "https://www.newsbeast.gr/travel/feed",
+
+  "https://www.newsbeast.gr/opinion/feed",
+
+  "https://www.newsbeast.gr/entertainment/feed",
+
+  "https://www.newsbomb.gr/oles-oi-eidhseis?format=feed&type=rss",
+
+  "https://www.in.gr/rss",
+
+  "https://devblogs.microsoft.com/rss/",
+
+  "https://www.dwrean.net/feeds/posts/default?alt=rss",
+
+  "https://www.tanea.gr/?feed=rss2",
+
+  "https://www.kathimerini.gr/infeeds/rss/nx-rss-feed.xml",
+
+  "https://tovima.gr/feed",
+
+  "https://en.protothema.gr/feed",
+
+  "https://www.vradini.gr/feed/",
+
+  "https://www.naftemporiki.gr/feed/",
+
+  "https://www.ethnos.gr/rss-news?positionid=1",
+
+  "https://feeds.bbci.co.uk/news/world/rss.xml",
+
+  "https://www.theguardian.com/world/rss",
+
+  "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+
+  "https://www.aljazeera.com/xml/rss/all.xml"
+
+];
+
+// Μετατρέπει την UTC ημερομηνία σε τοπική ώρα Ελλάδος
+
+const formatToLocalTime = (dateString) => {
+
+  if (!dateString) return '';
+
+  // Αντικατάσταση του κενού με 'T' για σωστό ISO parsing από τον Browser
+
+  const isoFormatted = dateString.replace(' ', 'T');
+
+  const date = new Date(isoFormatted);
+
+ 
+
+  return date.toLocaleString('el-GR', {
+
+    day: 'numeric',
+
+    month: 'numeric',
+
+    year: 'numeric',
+
+    hour: '2-digit',
+
+    minute: '2-digit',
+
+    second: '2-digit',
+
+    hour12: true
+
+  });
+
+};
+
+
+
+function App() {
+
+  const [articles, setArticles] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+
+  const [error, setError] = useState(null);
+
+  // State για το επιλεγμένο άρθρο & το πλήρες περιεχόμενό του
+
+  const [selectedArticle, setSelectedArticle] = useState(null);
+
+  const [fullArticleHtml, setFullArticleHtml] = useState('');
+
+  const [loadingFullText, setLoadingFullText] = useState(false);
+
+  // State για το URL που προβάλλεται στο iframe Modal
+
+const [iframeUrl, setIframeUrl] = useState(null);
+
+
+
+  useEffect(() => {
+
+    const fetchAllNews = async () => {
+
+      try {
+
+        setLoading(true);
+
+        setError(null);
+
+
+
+        // 1. Δημιουργούμε έναν πίνακα με όλα τα fetch promises
+
+        const fetchPromises = rssUrlList.map(async (rssUrl) => {
+
+          try {
+
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+            const response = await fetch(apiUrl);
+
+            const data = await response.json();
+
+           
+
+            if (data.status === 'ok') {
+
+              // Προσθέτουμε σε κάθε άρθρο τον τίτλο της πηγής για να ξέρουμε από πού ήρθε
+
+              return data.items.map((item) => ({
+
+                ...item,
+
+                sourceTitle: data.feed.title || 'Ειδήσεις'
+
+              }));
+
+            }
+
+            return [];
+
+          } catch (err) {
+
+            console.warn(`Αποτυχία φόρτωσης για το feed: ${rssUrl}`, err);
+
+            return []; // Αν ένα feed αποτύχει, επιστρέφουμε κενό πίνακα για να μη σπάσει η εφαρμογή
+
+          }
+
+        });
+
+
+
+        // 2. Εκτελούμε όλα τα requests παράλληλα
+
+        const results = await Promise.all(fetchPromises);
+
+
+
+        // 3. Ενώνουμε όλους τους πίνακες άρθρων σε έναν (flat)
+
+        const combinedArticles = results.flat();
+
+
+
+        // 4. Ταξινομούμε τα άρθρα από το νεότερο προς το παλαιότερο
+
+        combinedArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+
+
+        setArticles(combinedArticles);
+
+      } catch (err) {
+
+        setError('Σφάλμα κατά τη φόρτωση των ειδήσεων.');
+
+      } finally {
+
+        setLoading(false);
+
+      }
+
+    };
+
+
+
+    fetchAllNews();
+
+  }, []);
+
+  // Συνάρτηση για τον καθαρισμό και την επιλογή της περιγραφής
+
+const getCleanDescription = (item) => {
+
+  // 1. Δοκιμάζουμε το description ή το content
+
+  const rawText = item.description || item.content || '';
+
+ 
+
+  // 2. Αφαιρούμε τα HTML tags
+
+  const cleanText = rawText.replace(/<[^>]*>?/gm, '').trim();
+
+
+
+  // 3. Αν μετά τον καθαρισμό υπάρχει κείμενο, το επιστρέφουμε (περιορισμένο σε 120 χαρακτήρες)
+
+  if (cleanText.length > 0) {
+
+    return cleanText.length > 120 ? cleanText.substring(0, 120) + '...' : cleanText;
+
+  }
+
+
+
+  // 4. Αν δεν υπάρχει καθόλου κείμενο, επιστρέφουμε ένα προκαθορισμένο μήνυμα
+
+  return 'Δεν υπάρχει διαθέσιμη περίληψη. Πατήστε για να διαβάσετε την είδηση.';
+
+};
+
+const handleOpenArticle = async (item) => {
+
+  setSelectedArticle(item);
+
+  setLoadingFullText(true);
+
+  setFullArticleHtml('');
+
+
+
+  // 1. Καθαρίζουμε πρώτα την περιγραφή ως σίγουρη εναλλακτική (Fallback)
+
+  const defaultText = item.content || item.description || 'Δεν διατίθεται επιπλέον κείμενο για αυτό το άρθρο.';
+
+
+
+  // Δημιουργία Controller με Timeout 4 δευτερολέπτων
+
+  const controller = new AbortController();
+
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+
+
+  try {
+
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(item.link)}`;
+
+    const res = await fetch(proxyUrl, { signal: controller.signal });
+
+    clearTimeout(timeoutId);
+
+
+
+    const data = await res.json();
+
+
+
+    if (data && data.contents) {
+
+      const parser = new DOMParser();
+
+      const doc = parser.parseFromString(data.contents, 'text/html');
+
+
+
+      // Αφαίρεση ανεπιθύμητων στοιχείων
+
+      const selectorsToRemove = ['script', 'style', 'nav', 'footer', 'header', 'iframe', 'aside', 'form', '.ads'];
+
+      selectorsToRemove.forEach((s) => doc.querySelectorAll(s).forEach((el) => el.remove()));
+
+
+
+      const mainContent = doc.querySelector('article') || doc.querySelector('main') || doc.body;
+
+      const paragraphs = Array.from(mainContent.querySelectorAll('p'))
+
+        .map((p) => p.outerHTML)
+
+        .filter((html) => html.replace(/<[^>]*>?/gm, '').trim().length > 20) // Κρατάμε ουσιαστικές παραγράφους
+
+        .join('');
+
+
+
+      if (paragraphs && paragraphs.trim().length > 50) {
+
+        setFullArticleHtml(paragraphs);
+
+      } else {
+
+        setFullArticleHtml(defaultText);
+
+      }
+
+    } else {
+
+      setFullArticleHtml(defaultText);
+
+    }
+
+  } catch (e) {
+
+    // Αν τελειώσει το timeout ή υπάρξει σφάλμα δικτύου
+
+    console.warn('Αποτυχία φόρτωσης εξωτερικού άρθρου, χρήση περιγραφής RSS:', e);
+
+    setFullArticleHtml(defaultText);
+
+  } finally {
+
+    setLoadingFullText(false);
+
+  }
+
+};
+
+  return (
+
+    <div className="container">
+
+      <header className="header">
+
+        <h1>🗞️ Εφαρμογή Ειδήσεων RSS</h1>
+
+        <p>Τελευταίες ειδήσεις σε πραγματικό χρόνο</p>
+
+      </header>
+
+
+
+      {loading && <div className="status">Φόρτωση ειδήσεων...</div>}
+
+      {error && <div className="status error">{error}</div>}
+
+
+
+      {/* ΑΝ ΕΧΕΙ ΕΠΙΛΕΓΕΙ ΑΡΘΡΟ: Εμφάνιση Reader View */}
+
+      {!loading && !error && selectedArticle ? (
+
+        <div className="article-reader">
+
+          <div className="reader-actions">
+
+          <button
+
+            className="back-btn"
+
+            onClick={() => setSelectedArticle(null)}
+
+          >
+
+            ← Πίσω στη λίστα ειδήσεων
+
+          </button>
+
+          {/* 🟢 Κουμπί για άνοιγμα σε iframe */}
+
+      <button
+
+        className="iframe-btn"
+
+        onClick={() => setIframeUrl(selectedArticle.link)}
+
+      >
+
+        🖥️ Προβολή σε iframe
+
+      </button>
+
+          </div>
+
+          {/* 🟢 2. ΕΔΩ ΜΠΑΙΝΕΙ ΤΟ MODAL:
+
+          Ακριβώς ΠΡΙΝ κλείσει το αρχικό <div className="container"> */}
+
+      {iframeUrl && (
+
+        <div className="iframe-modal-overlay" onClick={() => setIframeUrl(null)}>
+
+          <div className="iframe-modal-content" onClick={(e) => e.stopPropagation()}>
+
+            <div className="iframe-header">
+
+              <span>Προβολή Ιστοσελίδας</span>
+
+              <button className="close-iframe-btn" onClick={() => setIframeUrl(null)}>
+
+                ✖ Κλείσιμο
+
+              </button>
+
+            </div>
+
+            <iframe
+
+              src={iframeUrl}
+
+              title="Προβολή εξωτερικής σελίδας"
+
+              className="news-iframe"
+
+            />
+
+          </div>
+
+        </div>
+
+      )}
+
+
+
+
+
+          <article className="full-article">
+
+            {(selectedArticle.thumbnail || selectedArticle.enclosure?.link) && (
+
+              <img
+
+                src={selectedArticle.thumbnail || selectedArticle.enclosure?.link}
+
+                alt={selectedArticle.title}
+
+                className="reader-image"
+
+              />
+
+            )}
+
+            <h2>{selectedArticle.title}</h2>
+
+            <p className="pub-date">
+
+              📅 {new Date(selectedArticle.pubDate).toLocaleString('el-GR')}
+
+            </p>
+
+           
+
+            {/* Προβολή του πλήρους κειμένου ή της περιγραφής */}
+
+            <div
+
+              className="article-body"
+
+              dangerouslySetInnerHTML={{
+
+                __html: fullArticleHtml || selectedArticle.content || selectedArticle.description
+
+              }}
+
+            />
+
+           
+
+            <hr />
+
+            <p className="original-link">
+
+              Πηγή: <a href={selectedArticle.link} target="_blank" rel="noopener noreferrer">Δείτε το πρωτότυπο άρθρο</a>
+
+            </p>
+
+          </article>
+
+        </div>
+
+      ) : (
+
+        /* ΑΝ ΔΕΝ ΕΧΕΙ ΕΠΙΛΕΓΕΙ ΑΡΘΡΟ: Εμφάνιση Λίστας / Cards */
+
+        !loading && !error && (
+
+          <div className="news-grid">
+
+            {articles.map((item, index) => (
+
+              <article key={index} className="news-card">
+
+                {(item.thumbnail || item.enclosure?.link) && (
+
+                  <img
+
+                    src={item.thumbnail || item.enclosure?.link}
+
+                    alt={item.title}
+
+                    className="news-image"
+
+                  />
+
+                )}
+
+                <div className="news-content">
+
+                <h2>{item.title}</h2>
+
+        <p className="pub-date">
+
+    📅 {formatToLocalTime(item.pubDate)}
+
+  </p>
+
+
+
+  {/* 🟢 ΝΕΑ ΓΡΑΜΜΗ: Χρήση της έξυπνης συνάρτησης */}
+
+  <p className="news-excerpt">{getCleanDescription(item)}</p>
+
+
+
+  <button
+
+    type="button"
+
+    className="read-more-btn"
+
+    onClick={() => handleOpenArticle(item)}
+
+  >
+
+    Διαβάστε περισσότερα →
+
+  </button>
+
+</div>
+
+                 
+
+              </article>
+
+            ))}
+
+          </div>
+
+        )
+
+      )}
+
+
+
+     
+
+    </div>
+
+   
+
+  );
+
+/*
+
+  return (
+
+    <div className="container">
+
+      <header className="header">
+
+        <h1>🗞️ Εφαρμογή Ειδήσεων RSS</h1>
+
+        <p>Συγκέντρωση ειδήσεων από {rssUrlList.length} πηγές</p>
+
+      </header>
+
+
+
+      {loading && <div className="status">⏳ Φόρτωση ειδήσεων από όλες τις πηγές...</div>}
+
+      {error && <div className="status error">{error}</div>}
+
+
+
+      {!loading && !error && (
+
+        <div className="news-grid">
+
+          {articles.map((item, index) => (
+
+            <article key={index} className="news-card">
+
+              {(item.thumbnail || item.enclosure?.link) && (
+
+                <img
+
+                  src={item.thumbnail || item.enclosure?.link}
+
+                  alt={item.title}
+
+                  className="news-image"
+
+                />
+
+              )}
+
+              <div className="news-content">
+
+                <span className="source-badge">{item.sourceTitle}</span>
+
+                <h2>{item.title}</h2>
+
+                <p className="pub-date">
+
+                  📅 {new Date(item.pubDate).toLocaleString('el-GR')}
+
+                </p>
+
+                <p>{(item.description || '').replace(/<[^>]*>?/gm, '').substring(0, 120)}...</p>
+
+                <a
+
+                  href={item.link}
+
+                  target="_blank"
+
+                  rel="noopener noreferrer"
+
+                  className="read-more-btn"
+
+                >
+
+                  Διαβάστε περισσότερα →
+
+                </a>
+
+              </div>
+
+            </article>
+
+          ))}
+
+        </div>
+
+      )}
+
+    </div>
+
+  );
+
+  */
+
+}
+
+
+
+export default App;
+
+Το VS Code βγάζει σφάλματα (errors) κυρίως για δύο λόγους στον συγκεκριμένο κώδικα:
+
+Λείπει η εμφάνιση του sourceTitle (της πηγής RSS) στις κάρτες της λίστας:
+
+Παρόλο που αποθηκεύετε το sourceTitle κατά το fetch, δεν το εμφανίζετε μέσα στο JSX της λίστας (.news-grid).
+
+Θέση του Iframe Modal:
+
+Το modal έχει τοποθετηθεί μόνο μέσα στο Reader View (selectedArticle ? (...)). Έτσι, όταν ο χρήστης βρίσκεται στην αρχική λίστα, το modal δεν μπορεί να εμφανιστεί. Το ιδανικό είναι το Modal να βρίσκεται στο τέλος του container, ώστε να λειτουργεί καθολικά.
+
+Ο πλήρης, διορθωμένος κώδικας App.jsx
+Αντικαταστήστε όλο το περιεχόμενο του App.jsx με τον παρακάτω καθαρό κώδικα (έχουν αφαιρεθεί και τα σχολιασμένα /* ... */ στο τέλος που δημιουργούσαν σύγχυση):
+
+JavaScript
+import { useState, useEffect } from 'react';
+import './App.css';
+
+const rssUrlList = [
+  "https://www.newsbeast.gr/feed",
+  "https://www.newsbeast.gr/greece/feed",
+  "https://www.newsbeast.gr/world/feed",
+  "https://www.newsbeast.gr/technology/feed",
+  "https://www.newsbeast.gr/sports/feed",
+  "https://www.newsbeast.gr/culture/feed",
+  "https://www.newsbeast.gr/science/feed",
+  "https://www.newsbeast.gr/health/feed",
+  "https://www.newsbeast.gr/travel/feed",
+  "https://www.newsbeast.gr/opinion/feed",
+  "https://www.newsbeast.gr/entertainment/feed",
+  "https://www.newsbomb.gr/oles-oi-eidhseis?format=feed&type=rss",
+  "https://www.in.gr/rss",
+  "https://devblogs.microsoft.com/rss/",
+  "https://www.dwrean.net/feeds/posts/default?alt=rss",
+  "https://www.tanea.gr/?feed=rss2",
+  "https://www.kathimerini.gr/infeeds/rss/nx-rss-feed.xml",
+  "https://tovima.gr/feed",
+  "https://en.protothema.gr/feed",
+  "https://www.vradini.gr/feed/",
+  "https://www.naftemporiki.gr/feed/",
+  "https://www.ethnos.gr/rss-news?positionid=1",
+  "https://feeds.bbci.co.uk/news/world/rss.xml",
+  "https://www.theguardian.com/world/rss",
+  "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+  "https://www.aljazeera.com/xml/rss/all.xml"
+];
+
+// Μετατρέπει την UTC ημερομηνία σε τοπική ώρα Ελλάδος
+const formatToLocalTime = (dateString) => {
+  if (!dateString) return '';
+  const isoFormatted = dateString.replace(' ', 'T');
+  const date = new Date(isoFormatted);
+  
+  return date.toLocaleString('el-GR', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
+
+function App() {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // State για το επιλεγμένο άρθρο & το πλήρες περιεχόμενό του
+  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [fullArticleHtml, setFullArticleHtml] = useState('');
+  const [loadingFullText, setLoadingFullText] = useState(false);
+  
+  // State για το URL που προβάλλεται στο iframe Modal
+  const [iframeUrl, setIframeUrl] = useState(null);
+
+  useEffect(() => {
+    const fetchAllNews = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const fetchPromises = rssUrlList.map(async (rssUrl) => {
+          try {
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            
+            if (data.status === 'ok') {
+              return data.items.map((item) => ({
+                ...item,
+                sourceTitle: data.feed?.title || 'Ειδήσεις' // 👈 Αποθήκευση πηγής
+              }));
+            }
+            return [];
+          } catch (err) {
+            console.warn(`Αποτυχία φόρτωσης για το feed: ${rssUrl}`, err);
+            return [];
+          }
+        });
+
+        const results = await Promise.all(fetchPromises);
+        const combinedArticles = results.flat();
+
+        // Ταξινόμηση από το νεότερο προς το παλαιότερο
+        combinedArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+        setArticles(combinedArticles);
+      } catch (err) {
+        setError('Σφάλμα κατά τη φόρτωση των ειδήσεων.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllNews();
+  }, []);
+
+  // Συνάρτηση για τον καθαρισμό και την επιλογή της περιγραφής
+  const getCleanDescription = (item) => {
+    const rawText = item.description || item.content || '';
+    const cleanText = rawText.replace(/<[^>]*>?/gm, '').trim();
+
+    if (cleanText.length > 0) {
+      return cleanText.length > 120 ? cleanText.substring(0, 120) + '...' : cleanText;
+    }
+    return 'Δεν υπάρχει διαθέσιμη περίληψη. Πατήστε για να διαβάσετε την είδηση.';
+  };
+
+  const handleOpenArticle = async (item) => {
+    setSelectedArticle(item);
+    setLoadingFullText(true);
+    setFullArticleHtml('');
+
+    const defaultText = item.content || item.description || 'Δεν διατίθεται επιπλέον κείμενο για αυτό το άρθρο.';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    try {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(item.link)}`;
+      const res = await fetch(proxyUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      const data = await res.json();
+
+      if (data && data.contents) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data.contents, 'text/html');
+
+        const selectorsToRemove = ['script', 'style', 'nav', 'footer', 'header', 'iframe', 'aside', 'form', '.ads'];
+        selectorsToRemove.forEach((s) => doc.querySelectorAll(s).forEach((el) => el.remove()));
+
+        const mainContent = doc.querySelector('article') || doc.querySelector('main') || doc.body;
+        const paragraphs = Array.from(mainContent.querySelectorAll('p'))
+          .map((p) => p.outerHTML)
+          .filter((html) => html.replace(/<[^>]*>?/gm, '').trim().length > 20)
+          .join('');
+
+        if (paragraphs && paragraphs.trim().length > 50) {
+          setFullArticleHtml(paragraphs);
+        } else {
+          setFullArticleHtml(defaultText);
+        }
+      } else {
+        setFullArticleHtml(defaultText);
+      }
+    } catch (e) {
+      console.warn('Αποτυχία φόρτωσης εξωτερικού άρθρου, χρήση περιγραφής RSS:', e);
+      setFullArticleHtml(defaultText);
+    } finally {
+      setLoadingFullText(false);
+    }
+  };
+
+  return (
+    <div className="container">
+      <header className="header">
+        <h1>🗞️️ Εφαρμογή Ειδήσεων RSS</h1>
+        <p>Τελευταίες ειδήσεις σε πραγματικό χρόνο</p>
+      </header>
+
+      {loading && <div className="status">Φόρτωση ειδήσεων...</div>}
+      {error && <div className="status error">{error}</div>}
+
+      {/* ΑΝ ΕΧΕΙ ΕΠΙΛΕΓΕΙ ΑΡΘΡΟ: Εμφάνιση Reader View */}
+      {!loading && !error && selectedArticle ? (
+        <div className="article-reader">
+          <div className="reader-actions">
+            <button 
+              className="back-btn" 
+              onClick={() => setSelectedArticle(null)}
+            >
+              ← Πίσω στη λίστα ειδήσεων
+            </button>
+            <button
+              className="iframe-btn"
+              onClick={() => setIframeUrl(selectedArticle.link)}
+            >
+              🖥️ Προβολή σε iframe
+            </button>
+          </div>
+
+          <article className="full-article">
+            {(selectedArticle.thumbnail || selectedArticle.enclosure?.link) && (
+              <img
+                src={selectedArticle.thumbnail || selectedArticle.enclosure?.link}
+                alt={selectedArticle.title}
+                className="reader-image"
+              />
+            )}
+            
+            {/* 📰 Πηγή Άρθρου στο Reader View */}
+            {selectedArticle.sourceTitle && (
+              <span className="source-badge">📍 {selectedArticle.sourceTitle}</span>
+            )}
+
+            <h2>{selectedArticle.title}</h2>
+            <p className="pub-date">
+              📅 {formatToLocalTime(selectedArticle.pubDate)}
+            </p>
+            
+            {loadingFullText ? (
+              <p><i>Φόρτωση πλήρους κειμένου...</i></p>
+            ) : (
+              <div 
+                className="article-body"
+                dangerouslySetInnerHTML={{ 
+                  __html: fullArticleHtml || selectedArticle.content || selectedArticle.description 
+                }} 
+              />
+            )}
+            
+            <hr />
+            <p className="original-link">
+              Πηγή: <a href={selectedArticle.link} target="_blank" rel="noopener noreferrer">Δείτε το πρωτότυπο άρθρο</a>
+            </p>
+          </article>
+        </div>
+      ) : (
+        /* ΑΝ ΔΕΝ ΕΧΕΙ ΕΠΙΛΕΓΕΙ ΑΡΘΡΟ: Εμφάνιση Λίστας / Cards */
+        !loading && !error && (
+          <div className="news-grid">
+            {articles.map((item, index) => (
+              <article key={index} className="news-card">
+                {(item.thumbnail || item.enclosure?.link) && (
+                  <img
+                    src={item.thumbnail || item.enclosure?.link}
+                    alt={item.title}
+                    className="news-image"
+                  />
+                )}
+                <div className="news-content">
+                  {/* 📍 ΕΜΦΑΝΙΣΗ ΠΗΓΗΣ RSS */}
+                  {item.sourceTitle && (
+                    <span className="source-badge">📍 {item.sourceTitle}</span>
+                  )}
+
+                  <h2>{item.title}</h2>
+                  
+                  <p className="pub-date">
+                    📅 {formatToLocalTime(item.pubDate)}
+                  </p>
+
+                  <p className="news-excerpt">{getCleanDescription(item)}</p>
+
+                  <button
+                    type="button"
+                    className="read-more-btn"
+                    onClick={() => handleOpenArticle(item)}
+                  >
+                    Διαβάστε περισσότερα →
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* 🟢 IFRAME MODAL: Τοποθετημένο στο τέλος του container για να δουλεύει παντού */}
+      {iframeUrl && (
+        <div className="iframe-modal-overlay" onClick={() => setIframeUrl(null)}>
+          <div className="iframe-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="iframe-header">
+              <span>Προβολή Ιστοσελίδας</span>
+              <button className="close-iframe-btn" onClick={() => setIframeUrl(null)}>
+                ✖ Κλείσιμο
+              </button>
+            </div>
+            <iframe
+              src={iframeUrl}
+              title="Προβολή εξωτερικής σελίδας"
+              className="news-iframe"
+            />
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+export default App;
+Τι διορθώθηκε:
+Εμφάνιση Πηγής (RSS Title): Προστέθηκε το <span className="source-badge">📍 {item.sourceTitle}</span> τόσο στις κάρτες της αρχικής όσο και στο Reader View.
+
+Σωστή Ώρα Ελλάδος: Χρησιμοποιείται η formatToLocalTime παντού (και στο Reader View και στη λίστα).
+
+Διόρθωση Modal: Μεταφέρθηκε στο τέλος του <div className="container"> έξω από τα conditionals, λύνοντας τυχόν συντακτικά σφάλματα JSX στο VS Code.
+
+Γιατί δεν εμφανίζει τις πρόσφατες ειδήσεις; Πώς θα γίνει refresh η λιστα με τις ειδήσεις;
+
+Οι κύριοι λόγοι για τους οποίους δεν εμφανίζονται οι πρόσφατες ειδήσεις στον κώδικά σας είναι οι εξής:
+
+Caching (Μνήμη cache) από το API:
+
+Το δωρεάν API rss2json.com αποθηκεύει τα αποτελέσματα στη μνήμη cache για κάποιο χρονικό διάστημα (συνήθως 15–60 λεπτά). Έτσι, ακόμη κι αν κάνετε reload τη σελίδα, το API επιστρέφει τα παλιά αποθηκευμένα δεδομένα.
+
+Έλλειψη κουμπιού "Ανανέωση" (Refresh):
+
+Ο κώδικας εκτελεί το fetchAllNews() μόνο μία φορά όταν φορτώνει το component (useEffect).
+
+Cache στον Browser (Fetch API):
+
+Ο περιηγητής μπορεί επίσης να κρατάει cached απαντήσεις των αιτημάτων fetch.
+
+Πώς θα γίνει Refresh η λίστα με τις ειδήσεις;
+Για να λύσετε το πρόβλημα, πρέπει να κάνετε δύο πράγματα:
+
+Bypass στο Cache: Προσθέτουμε παράμετρο cache-buster (π.χ. &_t=timestamp) στο URL του rss2json, ώστε να αναγκάζουμε το API και τον browser να φέρνουν πάντα τα πιο φρέσκα δεδομένα.
+
+Προσθήκη Κουμπιού Ανανέωσης (Manual Refresh): Προσθέτουμε ένα κουμπί στο header που επιτρέπει στον χρήστη να ξαναφορτώνει τις ειδήσεις όποτε θέλει.
+
+Ο πλήρης, διορθωμένος κώδικας App.jsx
+Αντικαταστήστε το App.jsx με τον παρακάτω κώδικα:
+
+JavaScript
+import { useState, useEffect, useCallback } from 'react';
+import './App.css';
+
+const rssUrlList = [
+  "https://www.newsbeast.gr/feed",
+  "https://www.newsbeast.gr/greece/feed",
+  "https://www.newsbeast.gr/world/feed",
+  "https://www.newsbeast.gr/technology/feed",
+  "https://www.newsbeast.gr/sports/feed",
+  "https://www.newsbeast.gr/culture/feed",
+  "https://www.newsbeast.gr/science/feed",
+  "https://www.newsbeast.gr/health/feed",
+  "https://www.newsbeast.gr/travel/feed",
+  "https://www.newsbeast.gr/opinion/feed",
+  "https://www.newsbeast.gr/entertainment/feed",
+  "https://www.newsbomb.gr/oles-oi-eidhseis?format=feed&type=rss",
+  "https://www.in.gr/rss",
+  "https://devblogs.microsoft.com/rss/",
+  "https://www.dwrean.net/feeds/posts/default?alt=rss",
+  "https://www.tanea.gr/?feed=rss2",
+  "https://www.kathimerini.gr/infeeds/rss/nx-rss-feed.xml",
+  "https://tovima.gr/feed",
+  "https://en.protothema.gr/feed",
+  "https://www.vradini.gr/feed/",
+  "https://www.naftemporiki.gr/feed/",
+  "https://www.ethnos.gr/rss-news?positionid=1",
+  "https://feeds.bbci.co.uk/news/world/rss.xml",
+  "https://www.theguardian.com/world/rss",
+  "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+  "https://www.aljazeera.com/xml/rss/all.xml"
+];
+
+// Μετατρέπει την UTC ημερομηνία σε τοπική ώρα Ελλάδος
+const formatToLocalTime = (dateString) => {
+  if (!dateString) return '';
+  const isoFormatted = dateString.replace(' ', 'T');
+  const date = new Date(isoFormatted);
+  
+  return date.toLocaleString('el-GR', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
+
+function App() {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // State για το επιλεγμένο άρθρο & το πλήρες περιεχόμενό του
+  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [fullArticleHtml, setFullArticleHtml] = useState('');
+  const [loadingFullText, setLoadingFullText] = useState(false);
+  
+  // State για το URL που προβάλλεται στο iframe Modal
+  const [iframeUrl, setIframeUrl] = useState(null);
+
+  // 🔄 Συνάρτηση φόρτωσης/ανανέωσης ειδήσεων
+  const fetchAllNews = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Cache-buster timestamp για παράκαμψη της προσωρινής μνήμης (cache)
+      const timestamp = new Date().getTime();
+
+      const fetchPromises = rssUrlList.map(async (rssUrl) => {
+        try {
+          // Προσθήκη cache-buster (&_t=...)
+          const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&_t=${timestamp}`;
+          const response = await fetch(apiUrl, { cache: 'no-store' });
+          const data = await response.json();
+          
+          if (data.status === 'ok') {
+            return data.items.map((item) => ({
+              ...item,
+              sourceTitle: data.feed?.title || 'Ειδήσεις'
+            }));
+          }
+          return [];
+        } catch (err) {
+          console.warn(`Αποτυχία φόρτωσης για το feed: ${rssUrl}`, err);
+          return [];
+        }
+      });
+
+      const results = await Promise.all(fetchPromises);
+      const combinedArticles = results.flat();
+
+      // Ταξινόμηση από το νεότερο προς το παλαιότερο
+      combinedArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+      setArticles(combinedArticles);
+    } catch (err) {
+      setError('Σφάλμα κατά τη φόρτωση των ειδήσεων.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAllNews();
+  }, [fetchAllNews]);
+
+  // Καθαρισμός κειμένου περιγραφής
+  const getCleanDescription = (item) => {
+    const rawText = item.description || item.content || '';
+    const cleanText = rawText.replace(/<[^>]*>?/gm, '').trim();
+
+    if (cleanText.length > 0) {
+      return cleanText.length > 120 ? cleanText.substring(0, 120) + '...' : cleanText;
+    }
+    return 'Δεν υπάρχει διαθέσιμη περίληψη. Πατήστε για να διαβάσετε την είδηση.';
+  };
+
+  const handleOpenArticle = async (item) => {
+    setSelectedArticle(item);
+    setLoadingFullText(true);
+    setFullArticleHtml('');
+
+    const defaultText = item.content || item.description || 'Δεν διατίθεται επιπλέον κείμενο για αυτό το άρθρο.';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    try {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(item.link)}`;
+      const res = await fetch(proxyUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      const data = await res.json();
+
+      if (data && data.contents) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data.contents, 'text/html');
+
+        const selectorsToRemove = ['script', 'style', 'nav', 'footer', 'header', 'iframe', 'aside', 'form', '.ads'];
+        selectorsToRemove.forEach((s) => doc.querySelectorAll(s).forEach((el) => el.remove()));
+
+        const mainContent = doc.querySelector('article') || doc.querySelector('main') || doc.body;
+        const paragraphs = Array.from(mainContent.querySelectorAll('p'))
+          .map((p) => p.outerHTML)
+          .filter((html) => html.replace(/<[^>]*>?/gm, '').trim().length > 20)
+          .join('');
+
+        if (paragraphs && paragraphs.trim().length > 50) {
+          setFullArticleHtml(paragraphs);
+        } else {
+          setFullArticleHtml(defaultText);
+        }
+      } else {
+        setFullArticleHtml(defaultText);
+      }
+    } catch (e) {
+      console.warn('Αποτυχία φόρτωσης εξωτερικού άρθρου, χρήση περιγραφής RSS:', e);
+      setFullArticleHtml(defaultText);
+    } finally {
+      setLoadingFullText(false);
+    }
+  };
+
+  return (
+    <div className="container">
+      <header className="header">
+        <h1>🗞 Εφαρμογή Ειδήσεων RSS</h1>
+        <p>Τελευταίες ειδήσεις σε πραγματικό χρόνο</p>
+        
+        {/* 🔄 ΚΟΥΜΠΙ ΑΝΑΝΕΩΣΗΣ (REFRESH) */}
+        <button 
+          className="refresh-btn" 
+          onClick={fetchAllNews} 
+          disabled={loading}
+        >
+          {loading ? '🔄 Ανανέωση...' : '🔄 Ανανέωση Ειδήσεων'}
+        </button>
+      </header>
+
+      {loading && <div className="status">Φόρτωση ειδήσεων...</div>}
+      {error && <div className="status error">{error}</div>}
+
+      {/* Reader View */}
+      {!loading && !error && selectedArticle ? (
+        <div className="article-reader">
+          <div className="reader-actions">
+            <button 
+              className="back-btn" 
+              onClick={() => setSelectedArticle(null)}
+            >
+              ← Πίσω στη λίστα ειδήσεων
+            </button>
+            <button
+              className="iframe-btn"
+              onClick={() => setIframeUrl(selectedArticle.link)}
+            >
+              🖥️ Προβολή σε iframe
+            </button>
+          </div>
+
+          <article className="full-article">
+            {(selectedArticle.thumbnail || selectedArticle.enclosure?.link) && (
+              <img
+                src={selectedArticle.thumbnail || selectedArticle.enclosure?.link}
+                alt={selectedArticle.title}
+                className="reader-image"
+              />
+            )}
+            
+            {selectedArticle.sourceTitle && (
+              <span className="source-badge">📍 {selectedArticle.sourceTitle}</span>
+            )}
+
+            <h2>{selectedArticle.title}</h2>
+            <p className="pub-date">
+              📅 {formatToLocalTime(selectedArticle.pubDate)}
+            </p>
+            
+            {loadingFullText ? (
+              <p><i>Φόρτωση πλήρους κειμένου...</i></p>
+            ) : (
+              <div 
+                className="article-body"
+                dangerouslySetInnerHTML={{ 
+                  __html: fullArticleHtml || selectedArticle.content || selectedArticle.description 
+                }} 
+              />
+            )}
+            
+            <hr />
+            <p className="original-link">
+              Πηγή: <a href={selectedArticle.link} target="_blank" rel="noopener noreferrer">Δείτε το πρωτότυπο άρθρο</a>
+            </p>
+          </article>
+        </div>
+      ) : (
+        /* Λίστα Ειδήσεων */
+        !loading && !error && (
+          <div className="news-grid">
+            {articles.map((item, index) => (
+              <article key={index} className="news-card">
+                {(item.thumbnail || item.enclosure?.link) && (
+                  <img
+                    src={item.thumbnail || item.enclosure?.link}
+                    alt={item.title}
+                    className="news-image"
+                  />
+                )}
+                <div className="news-content">
+                  {item.sourceTitle && (
+                    <span className="source-badge">📍 {item.sourceTitle}</span>
+                  )}
+
+                  <h2>{item.title}</h2>
+                  
+                  <p className="pub-date">
+                    📅 {formatToLocalTime(item.pubDate)}
+                  </p>
+
+                  <p className="news-excerpt">{getCleanDescription(item)}</p>
+
+                  <button
+                    type="button"
+                    className="read-more-btn"
+                    onClick={() => handleOpenArticle(item)}
+                  >
+                    Διαβάστε περισσότερα →
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* Iframe Modal */}
+      {iframeUrl && (
+        <div className="iframe-modal-overlay" onClick={() => setIframeUrl(null)}>
+          <div className="iframe-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="iframe-header">
+              <span>Προβολή Ιστοσελίδας</span>
+              <button className="close-iframe-btn" onClick={() => setIframeUrl(null)}>
+                ✖ Κλείσιμο
+              </button>
+            </div>
+            <iframe
+              src={iframeUrl}
+              title="Προβολή εξωτερικής σελίδας"
+              className="news-iframe"
+            />
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+export default App;
+Τι άλλαξε στον κώδικα:
+&_t=${timestamp} & { cache: 'no-store' } στο fetch:
+
+Προσθέτει την τρέχουσα χρονική στιγμή στο URL, εξαναγκάζοντας το rss2json API και τον browser να ζητήσουν τα τελευταία δεδομένα από την πηγή και όχι από τη μνήμη cache.
+
+Κουμπί Ανανέωσης (Refresh Button):
+
+Προστέθηκε το κουμπί <button className="refresh-btn" onClick={fetchAllNews}> μέσα στο <header>.
+
+useCallback Hooks:
+
+Η συνάρτηση fetchAllNews τυλίχθηκε με useCallback για να μπορεί να καλείται τόσο κατά την αρχική φόρτωση (useEffect) όσο και χειροκίνητα από το κουμπί χωρίς προειδοποιήσεις (warnings) από τη React.
+
+Προαιρετικό CSS για το κουμπί Refresh:
+Μπορείτε να προσθέσετε στο App.css σας:
+
+CSS
+.refresh-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.refresh-btn:hover {
+  background-color: #0056b3;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+Το Gemini μπορεί να εμφανίζει ανακριβείς πληροφορίες, συμπεριλαμβανομένων των πληροφοριών σχετικά με άτομα, επομένως θα πρέπει να επαληθεύετε τις απαντήσεις του.
+
+Πολιτική απορρήτου της GoogleΑνοίγει σε νέο παράθυρο
+Όροι παροχής υπηρεσιών της GoogleΑνοίγει σε νέο παράθυρο
+Το απόρρητό σας και οι Εφαρμογές GeminiΑνοίγει σε νέο παράθυρο
+Η μεταφορτωμένη εικόνα δεν εμφανίζεται
